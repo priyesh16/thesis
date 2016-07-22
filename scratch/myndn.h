@@ -48,6 +48,7 @@ public:
 	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs.
 	std::string nodeName;    // like hostname
 	std::string prefixStr;
+	int nodeIdentifier;
 	Ptr<ndn::Name> prefixName;
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
@@ -55,6 +56,27 @@ public:
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
 // note the twoHopNbr could be the source node also..so always check for that
 } ;
+
+int nodeIdentifier[] = {
+		8,		//a
+		4, 		//b
+		7,		//c
+		14,		//d
+		9,		//e
+		3,		//f
+		5,		//g
+		6,		//h
+		2,		//i
+		1,		//j
+		13,		//k
+		15,		//m
+		11,		//n
+		10,		//o
+		17,		//p
+		16,		//q
+		12,		//r
+		18 		//s
+};
 
 std::string prefixNamesArr[] = {
 		"/0/2/1",		//a

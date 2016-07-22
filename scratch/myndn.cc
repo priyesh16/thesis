@@ -346,6 +346,54 @@ add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
 	}
 }
 
+void
+add_node_identifiers (void) {
+	int i;
+
+	for (i = 0; i < NODE_CNT; i++) {
+		nbrTable[i].nodeIdentifier = nodeIdentifier[i];
+	}
+}
+
+void
+print_identifiers (void) {
+	int i;
+
+	for (i = 0; i < NODE_CNT; i++) {
+		cout << "Node : " << nbrTable[i].nodeIdentifier << "\t" << "identifier : " << nbrTable[i].nodeName << endl;
+	}
+}
+
+/*
+void root_election() {
+	root = self;
+	parent = self;
+	bool isParentExists = false;
+
+	isParentExists = find_parent(nbrTable, parent);
+
+	if (isParentExists == false) {
+		if (labelTimeOut == True) {
+			// elect self as root node and assign labels to nbrs.
+			for (nbr in nbrTable)
+				nbrLabel = node.nbrLabel
+				packetType = LABEL_REP;
+				pkt.nbrInfor = nbr, nbr.Label
+				send_packet(pkt, nbr, nbr.label);
+		}
+	}
+	else
+		if parent.rootId < self.Id
+			parent offers better path to a root node
+		//send request for label and upon receiving a label reply change the local label to reflect
+		//prefix label
+		send_packet(pkt, parent, parent.label)
+		else
+			continue;
+	}
+}
+*/
+
 int
 main (int argc, char *argv[])
 {
@@ -363,7 +411,9 @@ main (int argc, char *argv[])
   topologyReader.SetFileName("scratch/paper_topo.txt");
   topologyReader.Read();
 
+  add_node_identifiers();
   fill_nbr_table();
+
 
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
@@ -402,6 +452,7 @@ main (int argc, char *argv[])
   //add_fib_entries();
   ndn::GlobalRoutingHelper::CalculateRoutes ();
   ndn::L3Protocol::FaceList m_faces;
+  print_identifiers();
 
   Simulator::Stop (Seconds (1.0));
   ndn::AppDelayTracer::InstallAll("outfile.txt");
