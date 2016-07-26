@@ -51,6 +51,8 @@ Ptr<Node> to;
 std::vector<std::string> names;
 ns3::AnnotatedTopologyReader topologyReader("", 1);
 std::vector<NodeInfo> nbrTable(NODE_CNT);
+std::vector<NdnNode> ndnNodeContainer;
+
 //NodeContainer nodeContainer;
 
 ndn::ndnSIM::trie_with_policy< ndn::Name,
@@ -61,27 +63,7 @@ std::vector<Ptr<ndn::Name> > prefix;
 
 
 
-void
-fill_names() {
-	std::vector<std::string>::const_iterator namesIter;
-	int i = 0;
-
-	for (i = 0; i < NODE_CNT; i++) {
-		//prefixNames[i](prefixNamesArr[i]);
-		prefix.push_back(Create<ndn::Name> (prefixNamesArr[i])); // another way to create name
-		names.push_back(prefixNamesArr[i]);
-		prefixTrie.insert(*(prefix[i]), Create < ndn::detail::RegisteredPrefixEntry > (prefix[i]));
-	}
-	// Test
-	super::iterator item = prefixTrie.find_exact(*(prefix[4]));
-	//cout << "Prefix found" << *((item->payload ())->GetPrefix()) << endl;
-	ndn::Name n1("/0/2/1/1/3");
-	item = prefixTrie.longest_prefix_match(n1);
-	//cout << "Longest Prefix found" << *((item->payload ())->GetPrefix()) << endl;
-}
-
-void
-fill_twoHopNbrInfo() {
+void fill_two_hop_nbr_info() {
 	std::list<NodeInfo * > oneHopNodeInfoList;
 	std::list<NodeInfo *>::const_iterator oneHopInfoListIter;
 	std::list<Ptr<Node> > oneHopList;
@@ -103,44 +85,8 @@ fill_twoHopNbrInfo() {
 	}
 }
 
-void
-fill_nbr_table() {
-	std::vector<Ptr<Node> >::iterator nodeIter;
-	std::vector<std::string>::const_iterator namesIter;
-	NodeContainer nodeContainer = NodeContainer::GetGlobal();
-	std::list<TopologyReader::Link> links;
-	links = topologyReader.GetLinks();
-	std::list<TopologyReader::Link>::iterator linkiter;
-	std::string fromName = "";
-	std::string toName = "";
-	int pos;
 
-	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
-		from = (*linkiter).GetFromNode();
-		fromName = (*linkiter).GetFromNodeName();
-		to = (*linkiter).GetToNode();
-		toName = (*linkiter).GetToNodeName();
-		//std::cout << "Pri : " << fromName << " -> " << toName << " : " << to->GetId() << "\n";
-		pos = from->GetId();
-		nbrTable[pos].node = from;
-		nbrTable[pos].nodeName = fromName;
-		nbrTable[pos].prefixStr = names[pos];
-		nbrTable[pos].prefixName = prefix[pos];
-		nbrTable[pos].oneHopList.push_back(to);
-		//std::cout << "Pri : " << toName << " -> " << fromName << " : " << from->GetId() << "\n";
-		pos = to->GetId();
-		nbrTable[pos].node = to;
-		nbrTable[pos].nodeName = toName;
-		nbrTable[pos].prefixStr = names[pos];
-		nbrTable[pos].prefixName = prefix[pos];
-		nbrTable[pos].oneHopList.push_back(from);
-	}
-	//std::cout << std::endl;
-	fill_twoHopNbrInfo();
-}
-
-void
-print_nbr_table() {
+void print_nbr_table() {
 	std::list<NodeInfo * > oneHopNodeInfoList;
 	std::list<NodeInfo *>::const_iterator oneHopInfoListIter;
 	std::list<Ptr<Node> > oneHopList;
@@ -172,8 +118,7 @@ print_nbr_table() {
 	}
 }
 
-void
-print_name(ndn::Name &namePrefix) {
+void print_name(ndn::Name &namePrefix) {
 	ndn::Name::const_iterator i;
 	for (i = namePrefix.begin(); i != namePrefix.end(); i++) {
 		cout << "/" << *i;
@@ -182,8 +127,7 @@ print_name(ndn::Name &namePrefix) {
 }
 
 
-void
-fill_next_hops() {
+void fill_next_hops() {
 	std::list<NodeInfo * > oneHopNodeInfoList;
 	std::list<NodeInfo * > oneHopNodeInfoList1;
 	std::list<NodeInfo *>::const_iterator oneHopInfoListIter;
@@ -299,8 +243,7 @@ fill_next_hops() {
 	cout << "\n-------------------------------------------------\n\n\n";
 }
 
-void
-add_fib_entries (void) {
+void add_fib_entries (void) {
 	int i;
 	Ptr<ndn::L3Protocol> ndnProt;
 	Ptr<ndn::Face> nextFace = 0;
@@ -325,8 +268,7 @@ add_fib_entries (void) {
 	}
 }
 
-void
-add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
+void add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
 	Ptr<Node> node1=NodeList::GetNode(firstNode);
 	Ptr<Fib>  fib  = node1->GetObject<Fib> ();
 	unsigned m, k;
@@ -346,29 +288,29 @@ add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
 	}
 }
 
-void
-add_node_identifiers (void) {
-	int i;
 
-	for (i = 0; i < NODE_CNT; i++) {
-		nbrTable[i].nodeIdentifier = nodeIdentifier[i];
-	}
-}
 
-void
-print_identifiers (void) {
+void print_identifiers (void) {
 	int i;
 
 	for (i = 0; i < NODE_CNT; i++) {
 		cout << "Node : " << nbrTable[i].nodeIdentifier << "\t" << "identifier : " << nbrTable[i].nodeName << endl;
-	}
+		cout << "1Node : " << ndnNodeContainer[i].nodeIdentifier << "\t" << "1identifier : " << ndnNodeContainer[i].nodeName << endl;
+	}	
 }
 
 /*
-void root_election() {
+void on_root_election(NodeInfo *pNode, Packet *pPacket) {
 	root = self;
 	parent = self;
 	bool isParentExists = false;
+
+	// If
+	if (pPacket->previousRoot <= pNode->previousRoot)
+		pNode->previousRoot = pPacket->previousRoot;
+
+
+
 
 	isParentExists = find_parent(nbrTable, parent);
 
@@ -394,70 +336,177 @@ void root_election() {
 }
 */
 
-int
-main (int argc, char *argv[])
+void fill_names() {
+	std::vector<std::string>::const_iterator namesIter;
+	int i = 0;
+
+	for (i = 0; i < NODE_CNT; i++) {
+		//prefixNames[i](prefixNamesArr[i]);
+		prefix.push_back(Create<ndn::Name> (prefixNamesArr[i])); // another way to create name
+		names.push_back(prefixNamesArr[i]);
+		prefixTrie.insert(*(prefix[i]), Create < ndn::detail::RegisteredPrefixEntry > (prefix[i]));
+	}
+	// Test
+	super::iterator item = prefixTrie.find_exact(*(prefix[4]));
+	//cout << "Prefix found" << *((item->payload ())->GetPrefix()) << endl;
+	ndn::Name n1("/0/2/1/1/3");
+	item = prefixTrie.longest_prefix_match(n1);
+	//cout << "Longest Prefix found" << *((item->payload ())->GetPrefix()) << endl;
+}
+
+void add_node_identifiers (void) {
+	int i;
+
+	for (i = 0; i < NODE_CNT; i++) {
+		nbrTable[i].nodeIdentifier = nodeIdentifierTable[i];
+	}
+}
+
+void fill_nbr_table() {
+	std::vector<Ptr<Node> >::iterator nodeIter;
+	std::vector<std::string>::const_iterator namesIter;
+	NodeContainer nodeContainer = NodeContainer::GetGlobal();
+	std::list<TopologyReader::Link> links;
+	links = topologyReader.GetLinks();
+	std::list<TopologyReader::Link>::iterator linkiter;
+	std::string fromName = "";
+	std::string toName = "";
+	int pos;
+
+	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
+		from = (*linkiter).GetFromNode();
+		fromName = (*linkiter).GetFromNodeName();
+		to = (*linkiter).GetToNode();
+		toName = (*linkiter).GetToNodeName();
+		//std::cout << "Pri : " << fromName << " -> " << toName << " : " << to->GetId() << "\n";
+		pos = from->GetId();
+		nbrTable[pos].node = from;
+		nbrTable[pos].nodeName = fromName;
+		nbrTable[pos].prefixStr = names[pos];
+		nbrTable[pos].prefixName = prefix[pos];
+		nbrTable[pos].oneHopList.push_back(to);
+		//std::cout << "Pri : " << toName << " -> " << fromName << " : " << from->GetId() << "\n";
+		pos = to->GetId();
+		nbrTable[pos].node = to;
+		nbrTable[pos].nodeName = toName;
+		nbrTable[pos].prefixStr = names[pos];
+		nbrTable[pos].prefixName = prefix[pos];
+		nbrTable[pos].oneHopList.push_back(from);
+	}
+	//std::cout << std::endl;
+	fill_two_hop_nbr_info();
+}
+
+void create_node_container() {
+	std::vector<std::string>::const_iterator namesIter;
+	NodeContainer nodeContainer = NodeContainer::GetGlobal();
+	std::list<TopologyReader::Link> links;
+	links = topologyReader.GetLinks();
+	std::list<TopologyReader::Link>::iterator linkiter;
+	std::string fromName = "";
+	std::string toName = "";
+	int pos;
+	int topoId;
+	NdnNode fromNdnNode;
+	NdnNode toNdnNode;
+	int size = nodeContainer.GetN();
+	ndnNodeContainer.resize(size);
+
+	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
+		from = (*linkiter).GetFromNode();
+		
+		fromName = (*linkiter).GetFromNodeName();
+		to = (*linkiter).GetToNode();
+		toName = (*linkiter).GetToNodeName();
+
+		//std::cout << "Pri : " << fromName << " -> " << toName << " : " << to->GetId() << "\n";
+		topoId = from->GetId();
+		pos = nodeIdentifierTable[topoId];
+		fromNdnNode.node = from;
+		fromNdnNode.nodeName = fromName;
+		fromNdnNode.oneHopList.push_back(to);
+		ndnNodeContainer.insert(ndnNodeContainer.begin() + pos, fromNdnNode);
+
+		//std::cout << "Pri : " << toName << " -> " << fromName << " : " << from->GetId() << "\n";
+		pos = to->GetId();
+		toNdnNode.node = to;
+		toNdnNode.nodeName = toName;
+		toNdnNode.oneHopList.push_back(from);
+		ndnNodeContainer.insert(ndnNodeContainer.begin() + pos, toNdnNode);
+	}
+	//std::cout << std::endl;
+	cout << "!!Here \n";
+	fill_two_hop_nbr_info();
+	cout << "!!1Here \n";
+}
+
+int main (int argc, char *argv[])
 {
-  // Setting default parameters for PointToPoint links and channels
-  Config::SetDefault ("ns3::PointToPointNetDevice::DataRate", StringValue ("1Mbps"));
-  Config::SetDefault ("ns3::PointToPointChannel::Delay", StringValue ("10ms"));
-  Config::SetDefault ("ns3::DropTailQueue::MaxPackets", StringValue ("10"));
+	// Setting default parameters for PointToPoint links and channels
+	Config::SetDefault ("ns3::PointToPointNetDevice::DataRate", StringValue ("1Mbps"));
+	Config::SetDefault ("ns3::PointToPointChannel::Delay", StringValue ("10ms"));
+    Config::SetDefault ("ns3::DropTailQueue::MaxPackets", StringValue ("10"));
 
-  // Read optional command-line parameters (e.g., enable visualizer with ./waf --run=<> --visualize
-  CommandLine cmd;
-  cmd.Parse (argc, argv);
+	// Read optional command-line parameters (e.g., enable visualizer with ./waf --run=<> --visualize
+	CommandLine cmd;
+	cmd.Parse (argc, argv);
 
-  fill_names();
+	// Read the topology from the topology text file
+	topologyReader.SetFileName("scratch/paper_topo.txt");
+	topologyReader.Read();
 
-  topologyReader.SetFileName("scratch/paper_topo.txt");
-  topologyReader.Read();
+	// Get the nodes in nodeContainer
+	NodeContainer nodeContainer = NodeContainer::GetGlobal();
 
-  add_node_identifiers();
-  fill_nbr_table();
+	// create the node container
+	create_node_container();
 
 
-  // Install NDN stack on all nodes
-  ndn::StackHelper ndnHelper;
-  ndnHelper.SetForwardingStrategy ("ns3::ndn::fw::BestRoute");
-  ndnHelper.InstallAll ();
-  
-  // Installing global routing interface on all nodes
+	fill_nbr_table();
+	add_node_identifiers();
+	
 
-  ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
-  ndnGlobalRoutingHelper.InstallAll ();
-  
-  NodeContainer nodeContainer = NodeContainer::GetGlobal();
+	// Install NDN stack on all nodes
+	ndn::StackHelper ndnHelper;
+	ndnHelper.SetForwardingStrategy ("ns3::ndn::fw::BestRoute");
+	ndnHelper.InstallAll ();
 
-  // Getting containers for the consumer/producer
-  Ptr<Node> producer = nodeContainer.Get (PROD);
-  //print_nbr_table();
-  NodeContainer consumerNodes;
-  consumerNodes.Add (nodeContainer.Get (CONS));
+	// Installing global routing interface on all nodes
 
-  ndn::AppHelper consumerHelper ("ns3::ndn::ConsumerCbr");
-  consumerHelper.SetPrefix (interestPrefixstr);
-  consumerHelper.SetAttribute ("Frequency", StringValue ("1")); // 10 interests a second
-  consumerHelper.Install (consumerNodes);
+	ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
+	ndnGlobalRoutingHelper.InstallAll ();
 
-  ndn::AppHelper producerHelper ("ns3::ndn::Producer");
-  producerHelper.SetPrefix (interestPrefixstr);
-  producerHelper.SetAttribute ("PayloadSize", StringValue("1024"));
-  producerHelper.Install (producer);
+	// Getting containers for the consumer/producer
+	Ptr<Node> producer = nodeContainer.Get (PROD);
+	//print_nbr_table();
+	NodeContainer consumerNodes;
+	consumerNodes.Add (nodeContainer.Get (CONS));
 
-  fill_next_hops();
+	ndn::AppHelper consumerHelper ("ns3::ndn::ConsumerCbr");
+	consumerHelper.SetPrefix (interestPrefixstr);
+	consumerHelper.SetAttribute ("Frequency", StringValue ("1")); // 10 interests a second
+	consumerHelper.Install (consumerNodes);
 
-  // Add /prefix origins to ndn::GlobalRouter
-  ndnGlobalRoutingHelper.AddOrigins (interestPrefixstr, producer);
+	ndn::AppHelper producerHelper ("ns3::ndn::Producer");
+	producerHelper.SetPrefix (interestPrefixstr);
+	producerHelper.SetAttribute ("PayloadSize", StringValue("1024"));
+	producerHelper.Install (producer);
 
-  // Calculate and install FIBs
-  //add_fib_entries();
-  ndn::GlobalRoutingHelper::CalculateRoutes ();
-  ndn::L3Protocol::FaceList m_faces;
-  print_identifiers();
+	fill_next_hops();
 
-  Simulator::Stop (Seconds (1.0));
-  ndn::AppDelayTracer::InstallAll("outfile.txt");
-  Simulator::Run ();
-  Simulator::Destroy ();
+	// Add /prefix origins to ndn::GlobalRouter
+	ndnGlobalRoutingHelper.AddOrigins (interestPrefixstr, producer);
 
-  return 0;
+	// Calculate and install FIBs
+	//add_fib_entries();
+	ndn::GlobalRoutingHelper::CalculateRoutes ();
+	ndn::L3Protocol::FaceList m_faces;
+	print_identifiers();
+
+	Simulator::Stop (Seconds (1.0));
+	ndn::AppDelayTracer::InstallAll("outfile.txt");
+	Simulator::Run ();
+	Simulator::Destroy ();
+
+	 return 0;
 }

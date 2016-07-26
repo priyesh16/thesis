@@ -25,6 +25,7 @@
 #include "ns3/ndnSIM-module.h"
 #include "../src/ndnSIM/helper/ndn-global-routing-helper.h"
 #include "../src/ndnSIM/model/ndn-net-device-face.h"
+#include "subdir/ndn_node_container.h"
 #include "../src/ndnSIM/model/ndn-global-router.h"
 using namespace std;
 using namespace ns3;
@@ -49,15 +50,47 @@ public:
 	std::string nodeName;    // like hostname
 	std::string prefixStr;
 	int nodeIdentifier;
+	int nodeIdentifier1;
 	Ptr<ndn::Name> prefixName;
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
+	bool isRoot; // Member to check if currently is root.
 	// like ip address
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
 // note the twoHopNbr could be the source node also..so always check for that
 } ;
 
-int nodeIdentifier[] = {
+typedef enum packetType_s {
+	ROOT_ELECTION
+}packetType_t;
+
+class NdnNode {
+public:
+	Ptr<Node> node;
+	std::list<Ptr<Node> > oneHopList; //List of one hop nbrs.
+	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
+	std::string nodeName;    // like hostname
+	std::string prefixStr;
+	int nodeIdentifier;
+	Ptr<ndn::Name> prefixName;
+	twoNbrTrie *nbrTrie;
+	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
+	bool isRoot; // Member to check if currently is root.
+	// like ip address
+// (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
+// note the twoHopNbr could be the source node also..so always check for that
+} ;
+
+/*
+class Packet {
+public:
+	packetType_t packetType;
+	int senderNodeIdentifier;
+	int previousRoot; //Node identifier which the sender thinks is the root
+}
+*/
+
+int nodeIdentifierTable[] = {
 		8,		//a
 		4, 		//b
 		7,		//c
