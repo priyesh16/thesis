@@ -51,7 +51,7 @@ Ptr<Node> to;
 std::vector<std::string> names;
 ns3::AnnotatedTopologyReader topologyReader("", 1);
 std::vector<NodeInfo> nbrTable(NODE_CNT);
-std::vector<NdnNode> ndnNodeContainer;
+std::vector<NdnNode> ndnNodeContainer(0);
 
 //NodeContainer nodeContainer;
 
@@ -292,11 +292,13 @@ void add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
 
 void print_identifiers (void) {
 	int i;
+	int size = ndnNodeContainer.size();
 
-	for (i = 0; i < NODE_CNT; i++) {
-		cout << "Node : " << nbrTable[i].nodeIdentifier << "\t" << "identifier : " << nbrTable[i].nodeName << endl;
-		cout << "1Node : " << ndnNodeContainer[i].nodeIdentifier << "\t" << "1identifier : " << ndnNodeContainer[i].nodeName << endl;
+	for (i = 0; i < size; i++) {
+		//cout << "Node : " << nbrTable[i].nodeIdentifier << "\t" << "identifier : " << nbrTable[i].nodeName << endl;
+		cout << "NdnNode : " << ndnNodeContainer[i].nodeIdentifier << "\t" << "Identifier : " << ndnNodeContainer[i].nodeName << endl;
 	}	
+	cout << "\n\n\n";
 }
 
 /*
@@ -375,6 +377,7 @@ void fill_nbr_table() {
 
 	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
 		from = (*linkiter).GetFromNode();
+
 		fromName = (*linkiter).GetFromNodeName();
 		to = (*linkiter).GetToNode();
 		toName = (*linkiter).GetToNodeName();
@@ -412,6 +415,7 @@ void create_node_container() {
 	int size = nodeContainer.GetN();
 	ndnNodeContainer.resize(size);
 
+
 	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
 		from = (*linkiter).GetFromNode();
 		
@@ -425,19 +429,22 @@ void create_node_container() {
 		fromNdnNode.node = from;
 		fromNdnNode.nodeName = fromName;
 		fromNdnNode.oneHopList.push_back(to);
-		ndnNodeContainer.insert(ndnNodeContainer.begin() + pos, fromNdnNode);
+		fromNdnNode.nodeIdentifier = nodeIdentifierTable[topoId];
+		ndnNodeContainer[pos] = fromNdnNode;
 
 		//std::cout << "Pri : " << toName << " -> " << fromName << " : " << from->GetId() << "\n";
-		pos = to->GetId();
+		topoId = to->GetId();
+		pos = nodeIdentifierTable[topoId];
 		toNdnNode.node = to;
 		toNdnNode.nodeName = toName;
 		toNdnNode.oneHopList.push_back(from);
-		ndnNodeContainer.insert(ndnNodeContainer.begin() + pos, toNdnNode);
+		toNdnNode.nodeIdentifier = nodeIdentifierTable[topoId];
+		ndnNodeContainer[pos] = toNdnNode;
+		//cout << "\nto WTF size" << ndnNodeContainer.size() << "\n";
+
 	}
 	//std::cout << std::endl;
-	cout << "!!Here \n";
 	fill_two_hop_nbr_info();
-	cout << "!!1Here \n";
 }
 
 int main (int argc, char *argv[])
@@ -461,7 +468,7 @@ int main (int argc, char *argv[])
 	// create the node container
 	create_node_container();
 
-
+	fill_names();
 	fill_nbr_table();
 	add_node_identifiers();
 	
