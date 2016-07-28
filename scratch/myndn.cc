@@ -51,7 +51,7 @@ Ptr<Node> to;
 std::vector<std::string> names;
 ns3::AnnotatedTopologyReader topologyReader("", 1);
 std::vector<NodeInfo> nbrTable(NODE_CNT);
-std::vector<NdnNode> ndnNodeContainer(0);
+std::vector<NdnNode> ndnNodeContainer;
 
 //NodeContainer nodeContainer;
 
@@ -61,29 +61,6 @@ ndn::ndnSIM::trie_with_policy< ndn::Name,
 
 std::vector<Ptr<ndn::Name> > prefix;
 
-
-
-void fill_two_hop_nbr_info() {
-	std::list<NodeInfo * > oneHopNodeInfoList;
-	std::list<NodeInfo *>::const_iterator oneHopInfoListIter;
-	std::list<Ptr<Node> > oneHopList;
-	std::list<Ptr<Node> >::const_iterator oneHopListIter;
-	Ptr<Node> sourceNode;
-
-	int j;
-	int i;
-
-	for(i = 0; i != NODE_CNT; i++ ) {
-		  oneHopList = nbrTable[i].oneHopList;
-		  for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
-			  for (j = 0; j != NODE_CNT; j++) {
-				  if (nbrTable[j].node == *oneHopListIter) {
-					  nbrTable[i].oneHopNodeInfoList.push_back(&nbrTable[j]);
-				  }
-			  }
-		  }
-	}
-}
 
 
 void print_nbr_table() {
@@ -268,25 +245,6 @@ void add_fib_entries (void) {
 	}
 }
 
-void add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
-	Ptr<Node> node1=NodeList::GetNode(firstNode);
-	Ptr<Fib>  fib  = node1->GetObject<Fib> ();
-	unsigned m, k;
-	for(m=0; m<node1->GetNDevices(); m++){
-		Ptr<Channel> ch=node1->GetDevice(m)->GetChannel();
-		for(k=0; k<ch->GetNDevices(); k++){
-			if(ch->GetDevice(k)->GetNode()->GetId()==SecndNode){
-				//Ptr<Ipv4> stack = node->GetObject<Ipv4> ();
-				Ptr<ndn::L3Protocol> l3 = node1->GetObject<ndn::L3Protocol> ();
-		       // str="prefix1";
-				Ptr<Name> name = Create<Name>(str);
-				//Sname->append(str);
-				const Ptr<const Name> &prefix=name;
-				Ptr<fib::Entry> entry = fib->Add (prefix, l3->GetFace(m), metric );
-			}
-		}
-	}
-}
 
 
 
@@ -295,48 +253,11 @@ void print_identifiers (void) {
 	int size = ndnNodeContainer.size();
 
 	for (i = 0; i < size; i++) {
-		//cout << "Node : " << nbrTable[i].nodeIdentifier << "\t" << "identifier : " << nbrTable[i].nodeName << endl;
-		cout << "NdnNode : " << ndnNodeContainer[i].nodeIdentifier << "\t" << "Identifier : " << ndnNodeContainer[i].nodeName << endl;
+		//cout << "Node : " << nbrTable[i].nodeId << "\t" << "identifier : " << nbrTable[i].nodeName << endl;
+		cout << "NdnNode : " << ndnNodeContainer[i].nodeId << "\t" << "Identifier : " << ndnNodeContainer[i].nodeName << endl;
 	}	
 	cout << "\n\n\n";
 }
-
-/*
-void on_root_election(NodeInfo *pNode, Packet *pPacket) {
-	root = self;
-	parent = self;
-	bool isParentExists = false;
-
-	// If
-	if (pPacket->previousRoot <= pNode->previousRoot)
-		pNode->previousRoot = pPacket->previousRoot;
-
-
-
-
-	isParentExists = find_parent(nbrTable, parent);
-
-	if (isParentExists == false) {
-		if (labelTimeOut == True) {
-			// elect self as root node and assign labels to nbrs.
-			for (nbr in nbrTable)
-				nbrLabel = node.nbrLabel
-				packetType = LABEL_REP;
-				pkt.nbrInfor = nbr, nbr.Label
-				send_packet(pkt, nbr, nbr.label);
-		}
-	}
-	else
-		if parent.rootId < self.Id
-			parent offers better path to a root node
-		//send request for label and upon receiving a label reply change the local label to reflect
-		//prefix label
-		send_packet(pkt, parent, parent.label)
-		else
-			continue;
-	}
-}
-*/
 
 void fill_names() {
 	std::vector<std::string>::const_iterator namesIter;
@@ -360,7 +281,7 @@ void add_node_identifiers (void) {
 	int i;
 
 	for (i = 0; i < NODE_CNT; i++) {
-		nbrTable[i].nodeIdentifier = nodeIdentifierTable[i];
+		nbrTable[i].nodeId = nodeIdTable[i];
 	}
 }
 
@@ -400,6 +321,30 @@ void fill_nbr_table() {
 	fill_two_hop_nbr_info();
 }
 
+
+void fill_two_hop_nbr_info() {
+	std::list<NodeInfo * > oneHopNodeInfoList;
+	std::list<NodeInfo *>::const_iterator oneHopInfoListIter;
+	std::list<Ptr<Node> > oneHopList;
+	std::list<Ptr<Node> >::const_iterator oneHopListIter;
+	Ptr<Node> sourceNode;
+
+	int j;
+	int i;
+
+	for(i = 0; i != NODE_CNT; i++ ) {
+		  oneHopList = nbrTable[i].oneHopList;
+		  for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+			  for (j = 0; j != NODE_CNT; j++) {
+				  if (nbrTable[j].node == *oneHopListIter) {
+					  nbrTable[i].oneHopNodeInfoList.push_back(&nbrTable[j]);
+				  }
+			  }
+		  }
+	}
+}
+
+
 void create_node_container() {
 	std::vector<std::string>::const_iterator namesIter;
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
@@ -425,27 +370,133 @@ void create_node_container() {
 
 		//std::cout << "Pri : " << fromName << " -> " << toName << " : " << to->GetId() << "\n";
 		topoId = from->GetId();
-		pos = nodeIdentifierTable[topoId];
-		fromNdnNode.node = from;
+		pos = nodeIdTable[topoId];
+		fromNdnNode.pNode = from;
 		fromNdnNode.nodeName = fromName;
 		fromNdnNode.oneHopList.push_back(to);
-		fromNdnNode.nodeIdentifier = nodeIdentifierTable[topoId];
+		fromNdnNode.nodeId = nodeIdTable[topoId];
+		fromNdnNode.rootId = nodeIdTable[topoId];
 		ndnNodeContainer[pos] = fromNdnNode;
-
 		//std::cout << "Pri : " << toName << " -> " << fromName << " : " << from->GetId() << "\n";
 		topoId = to->GetId();
-		pos = nodeIdentifierTable[topoId];
-		toNdnNode.node = to;
+		pos = nodeIdTable[topoId];
+		toNdnNode.pNode = to;
 		toNdnNode.nodeName = toName;
 		toNdnNode.oneHopList.push_back(from);
-		toNdnNode.nodeIdentifier = nodeIdentifierTable[topoId];
+		toNdnNode.nodeId = nodeIdTable[topoId];
+		toNdnNode.rootId = nodeIdTable[topoId];
 		ndnNodeContainer[pos] = toNdnNode;
-		//cout << "\nto WTF size" << ndnNodeContainer.size() << "\n";
-
 	}
 	//std::cout << std::endl;
 	fill_two_hop_nbr_info();
 }
+
+void add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
+	Ptr<Node> node1=NodeList::GetNode(firstNode);
+	Ptr<Fib>  fib  = node1->GetObject<Fib> ();
+	unsigned m, k;
+	for(m=0; m<node1->GetNDevices(); m++){
+		Ptr<Channel> ch=node1->GetDevice(m)->GetChannel();
+		for(k=0; k<ch->GetNDevices(); k++){
+			if(ch->GetDevice(k)->GetNode()->GetId()==SecndNode){
+				//Ptr<Ipv4> stack = node->GetObject<Ipv4> ();
+				Ptr<ndn::L3Protocol> l3 = node1->GetObject<ndn::L3Protocol> ();
+		       // str="prefix1";
+				Ptr<Name> name = Create<Name>(str);
+				//Sname->append(str);
+				const Ptr<const Name> &prefix=name;
+				Ptr<fib::Entry> entry = fib->Add (prefix, l3->GetFace(m), metric );
+			}
+		}
+	}
+}
+
+Ptr<Face> get_face(unsigned firstNodeId, unsigned secondNodeId) {
+	Ptr<Node> node1 = NodeList::GetNode(firstNodeId);
+	Ptr<Channel> channel;
+	Ptr<ndn::L3Protocol> l3Prot;
+	Ptr<Face> face;
+
+	unsigned i, j;
+	for(i = 0; i < node1->GetNDevices(); i++) {
+		channel = node1->GetDevice(i)->GetChannel();
+		for(j = 0; j < channel->GetNDevices(); j++){
+			if(channel->GetDevice(j)->GetNode()->GetId() == secondNodeId){
+				//Ptr<Ipv4> stack = node->GetObject<Ipv4> ();
+				l3Prot = node1->GetObject<ndn::L3Protocol> ();
+		       	face = l3Prot->GetFace(i);
+			}
+		}
+	}
+	return face;
+}
+
+
+void send_packet(Ptr<NdnNode> curNdnNode)
+{
+	NdnPacket ndnPacket;
+	std::list<Ptr<Node> > oneHopList;
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+	//unsigned int size = oneHopList.size();
+	Ptr<Node> nbrNode;
+	Ptr<Node> curNode = curNdnNode->pNode;
+	Ptr<Face> face;
+	Data data;
+	
+	ndnPacket.packetType = GET_LABEL;
+	ndnPacket.senderId = curNdnNode->nodeId;
+	ndnPacket.rootId = curNdnNode->rootId; 
+	Packet payload((uint8_t *)&ndnPacket, sizeof(NdnPacket));
+	data.SetPayload(&payload);
+	
+	//send packet to all its neighbours;
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+		nbrNode = *oneHopListIter;
+		face = get_face(curNode->GetId(), nbrNode->GetId());
+		face->SendData(&data);
+	}
+}
+
+/*
+void recieve_packet(Ptr<NdnNode> curNdnNode)
+{
+	NdnPacket ndnPacket;
+	std::list<Ptr<Node> > oneHopList;
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+	//unsigned int size = oneHopList.size();
+	Ptr<Node> nbrNode;
+	Ptr<Node> curNode = curNdnNode->pNode;
+	Ptr<Face> face;
+	Data data;
+	Packet payload;
+	
+
+	payload = data.SetPayload(&payload);
+	
+	//send packet to all its neighbours;
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+		nbrNode = *oneHopListIter;
+		face = get_face(curNode->GetId(), nbrNode->GetId());
+		face->SendData(&data);
+	}
+}
+*/
+
+void fill_labels()
+{
+		std::vector<NdnNode>::iterator ndnNodeIter;
+		Ptr<NdnNode> curNdnNode;
+		for (unsigned int i = 0; i < ndnNodeContainer.size(); i++) 
+		{
+			curNdnNode = &ndnNodeContainer[i];
+			if (curNdnNode->prefixName == NULL) 
+			{
+				send_packet(curNdnNode);
+			}
+		}	
+
+}
+
 
 int main (int argc, char *argv[])
 {
@@ -505,8 +556,8 @@ int main (int argc, char *argv[])
 	ndnGlobalRoutingHelper.AddOrigins (interestPrefixstr, producer);
 
 	// Calculate and install FIBs
-	//add_fib_entries();
-	ndn::GlobalRoutingHelper::CalculateRoutes ();
+	add_fib_entries();
+	//ndn::GlobalRoutingHelper::CalculateRoutes ();
 	ndn::L3Protocol::FaceList m_faces;
 	print_identifiers();
 

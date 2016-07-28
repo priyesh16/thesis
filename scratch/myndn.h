@@ -49,8 +49,7 @@ public:
 	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs.
 	std::string nodeName;    // like hostname
 	std::string prefixStr;
-	int nodeIdentifier;
-	int nodeIdentifier1;
+	int nodeId;
 	Ptr<ndn::Name> prefixName;
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
@@ -61,36 +60,38 @@ public:
 } ;
 
 typedef enum packetType_s {
-	ROOT_ELECTION
+	GET_LABEL,
+	SEND_LABEL
 }packetType_t;
 
-class NdnNode {
+class NdnNode : public SimpleRefCount<NdnNode>
+{
 public:
-	Ptr<Node> node;
+	Ptr<Node> pNode;
 	std::list<Ptr<Node> > oneHopList; //List of one hop nbrs.
 	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
 	std::string nodeName;    // like hostname
 	std::string prefixStr;
-	int nodeIdentifier;
+	int nodeId;
 	Ptr<ndn::Name> prefixName;
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
-	bool isRoot; // Member to check if currently is root.
+	int rootId;
 	// like ip address
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
 // note the twoHopNbr could be the source node also..so always check for that
 } ;
 
-/*
-class Packet {
+
+class NdnPacket {
 public:
 	packetType_t packetType;
-	int senderNodeIdentifier;
-	int previousRoot; //Node identifier which the sender thinks is the root
-}
-*/
+	int senderId;
+	int rootId; //Node identifier which the sender thinks is the root
+};
 
-int nodeIdentifierTable[] = {
+
+int nodeIdTable[] = {
 		7,		//a
 		3, 		//b
 		6,		//c
@@ -141,5 +142,6 @@ std::string prefixNamesArr[] = {
 void
 add_path(unsigned firstNode,unsigned SecndNode, int metric, const string str);
 
+void fill_two_hop_nbr_info();
 
 #endif /* SCRATCH_MYNDN_H_ */
