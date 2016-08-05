@@ -561,6 +561,12 @@ int main (int argc, char *argv[])
 	ndn::L3Protocol::FaceList m_faces;
 	print_identifiers();
 
+	ndn::AppHelper helloHelper ("ns3::ndn::HelloApp");
+	ApplicationContainer txapp = helloHelper.Install (nodeContainer.Get (PROD)); 
+	ApplicationContainer rxapp = helloHelper.Install (nodeContainer.Get (CONS));
+
+	send_packet(&ndnNodeContainer[3]);
+
 	Simulator::Stop (Seconds (1.0));
 	ndn::AppDelayTracer::InstallAll("outfile.txt");
 	Simulator::Run ();

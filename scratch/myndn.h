@@ -27,6 +27,7 @@
 #include "../src/ndnSIM/model/ndn-net-device-face.h"
 #include "subdir/ndn_node_container.h"
 #include "../src/ndnSIM/model/ndn-global-router.h"
+
 using namespace std;
 using namespace ns3;
 using namespace ndn;
@@ -83,7 +84,8 @@ public:
 } ;
 
 
-class NdnPacket {
+class NdnPacket : public SimpleRefCount<NdnPacket>
+{
 public:
 	packetType_t packetType;
 	int senderId;
