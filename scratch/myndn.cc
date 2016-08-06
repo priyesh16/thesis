@@ -51,7 +51,7 @@ Ptr<Node> to;
 std::vector<std::string> names;
 ns3::AnnotatedTopologyReader topologyReader("", 1);
 std::vector<NodeInfo> nbrTable(NODE_CNT);
-std::vector<NdnNode> ndnNodeContainer;
+
 
 //NodeContainer nodeContainer;
 
@@ -432,30 +432,7 @@ Ptr<Face> get_face(unsigned firstNodeId, unsigned secondNodeId) {
 }
 
 
-void send_packet(Ptr<NdnNode> curNdnNode)
-{
-	NdnPacket ndnPacket;
-	std::list<Ptr<Node> > oneHopList;
-	std::list<Ptr<Node> >::iterator oneHopListIter;
-	//unsigned int size = oneHopList.size();
-	Ptr<Node> nbrNode;
-	Ptr<Node> curNode = curNdnNode->pNode;
-	Ptr<Face> face;
-	Data data;
-	
-	ndnPacket.packetType = GET_LABEL;
-	ndnPacket.senderId = curNdnNode->nodeId;
-	ndnPacket.rootId = curNdnNode->rootId; 
-	Packet payload((uint8_t *)&ndnPacket, sizeof(NdnPacket));
-	data.SetPayload(&payload);
-	
-	//send packet to all its neighbours;
-	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
-		nbrNode = *oneHopListIter;
-		face = get_face(curNode->GetId(), nbrNode->GetId());
-		face->SendData(&data);
-	}
-}
+
 
 /*
 void recieve_packet(Ptr<NdnNode> curNdnNode)
@@ -491,7 +468,7 @@ void fill_labels()
 			curNdnNode = &ndnNodeContainer[i];
 			if (curNdnNode->prefixName == NULL) 
 			{
-				send_packet(curNdnNode);
+				//send_packet(curNdnNode);
 			}
 		}	
 
@@ -561,13 +538,14 @@ int main (int argc, char *argv[])
 	ndn::L3Protocol::FaceList m_faces;
 	print_identifiers();
 
-	ndn::AppHelper helloHelper ("ns3::ndn::HelloApp");
-	ApplicationContainer txapp = helloHelper.Install (nodeContainer.Get (PROD)); 
-	ApplicationContainer rxapp = helloHelper.Install (nodeContainer.Get (CONS));
+	ndn::AppHelper txApp ("ns3::ndn::HelloApp");
+	txApp.Install (nodeContainer.Get (PROD)); 
 
-	send_packet(&ndnNodeContainer[3]);
+	ndn::AppHelper rxApp ("ns3::ndn::HelloApp");
+	rxApp.Install (nodeContainer.Get (PROD)); 
+	//send_packet(&ndnNodeContainer[PROD]);
 
-	Simulator::Stop (Seconds (1.0));
+	Simulator::Stop (Seconds (20.0));
 	ndn::AppDelayTracer::InstallAll("outfile.txt");
 	Simulator::Run ();
 	Simulator::Destroy ();

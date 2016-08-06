@@ -83,6 +83,7 @@ public:
 // note the twoHopNbr could be the source node also..so always check for that
 } ;
 
+std::vector<NdnNode> ndnNodeContainer;
 
 class NdnPacket : public SimpleRefCount<NdnPacket>
 {
