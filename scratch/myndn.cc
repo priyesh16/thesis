@@ -254,7 +254,7 @@ void print_identifiers (void) {
 
 	for (i = 0; i < size; i++) {
 		//cout << "Node : " << nbrTable[i].nodeId << "\t" << "identifier : " << nbrTable[i].nodeName << endl;
-		cout << "NdnNode : " << ndnNodeContainer[i].nodeId << "\t" << "Identifier : " << ndnNodeContainer[i].nodeName << endl;
+		cout << "NdnNode : " << ndnNodeContainer[i].ndnNodeId << "\t" << "Identifier : " << ndnNodeContainer[i].nodeName << endl;
 	}	
 	cout << "\n\n\n";
 }
@@ -281,7 +281,7 @@ void add_node_identifiers (void) {
 	int i;
 
 	for (i = 0; i < NODE_CNT; i++) {
-		nbrTable[i].nodeId = nodeIdTable[i];
+		nbrTable[i].nodeId = ndnNodeIdTable[i];
 	}
 }
 
@@ -344,7 +344,6 @@ void fill_two_hop_nbr_info() {
 	}
 }
 
-
 void create_node_container() {
 	std::vector<std::string>::const_iterator namesIter;
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
@@ -355,38 +354,37 @@ void create_node_container() {
 	std::string toName = "";
 	int pos;
 	int topoId;
-	NdnNode fromNdnNode;
-	NdnNode toNdnNode;
 	int size = nodeContainer.GetN();
 	ndnNodeContainer.resize(size);
 
-
 	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
+
 		from = (*linkiter).GetFromNode();
-		
 		fromName = (*linkiter).GetFromNodeName();
 		to = (*linkiter).GetToNode();
 		toName = (*linkiter).GetToNodeName();
 
-		//std::cout << "Pri : " << fromName << " -> " << toName << " : " << to->GetId() << "\n";
+		//std::cout << "Pri : " << fromName << "\t\t -> " << toName << " : " << to->GetId() << " " << pos << "\n";
 		topoId = from->GetId();
-		pos = nodeIdTable[topoId];
-		fromNdnNode.pNode = from;
-		fromNdnNode.nodeName = fromName;
-		fromNdnNode.oneHopList.push_back(to);
-		fromNdnNode.nodeId = nodeIdTable[topoId];
-		fromNdnNode.rootId = nodeIdTable[topoId];
-		ndnNodeContainer[pos] = fromNdnNode;
-		//std::cout << "Pri : " << toName << " -> " << fromName << " : " << from->GetId() << "\n";
+		pos = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].pNode = from;
+		ndnNodeContainer[pos].nodeName = fromName;
+		ndnNodeContainer[pos].oneHopList.push_back(to);
+		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].rootId = ndnNodeIdTable[topoId];
+		//ndnNodeContainer[pos].pHelloApp = NULL;
+
+		//std::cout << "Pri : " << toName << "\t\t -> " << fromName << " : " << from->GetId() << " " << pos << "\n";
 		topoId = to->GetId();
-		pos = nodeIdTable[topoId];
-		toNdnNode.pNode = to;
-		toNdnNode.nodeName = toName;
-		toNdnNode.oneHopList.push_back(from);
-		toNdnNode.nodeId = nodeIdTable[topoId];
-		toNdnNode.rootId = nodeIdTable[topoId];
-		ndnNodeContainer[pos] = toNdnNode;
+		pos = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].pNode = to;
+		ndnNodeContainer[pos].nodeName = toName;
+		ndnNodeContainer[pos].oneHopList.push_back(from);
+		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].rootId = ndnNodeIdTable[topoId];
+		//ndnNodeContainer[pos].pHelloApp = NULL;
 	}
+
 	//std::cout << std::endl;
 	fill_two_hop_nbr_info();
 }
@@ -474,6 +472,140 @@ void fill_labels()
 
 }
 
+Ptr<Face> GetFace(unsigned firstNodeId, unsigned secondNodeId) 
+{
+	Ptr<Node> node1 = NodeList::GetNode(firstNodeId);
+	Ptr<Channel> channel;
+	Ptr<ndn::L3Protocol> l3Prot;
+	Ptr<Face> face;
+
+	unsigned i, j;
+	for(i = 0; i < node1->GetNDevices(); i++) {
+		channel = node1->GetDevice(i)->GetChannel();
+		for(j = 0; j < channel->GetNDevices(); j++){
+			if(channel->GetDevice(j)->GetNode()->GetId() == secondNodeId){
+				//Ptr<Ipv4> stack = node->GetObject<Ipv4> ();
+				l3Prot = node1->GetObject<ndn::L3Protocol> ();
+		       	face = l3Prot->GetFace(i);
+			}
+		}
+	}
+	return face;
+}
+
+Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode)
+{
+	int pos;
+	int topoId;
+  
+	topoId = curNode->GetId();
+	pos = ndnNodeIdTable[topoId];
+	
+	return &ndnNodeContainer[pos];
+}
+
+Ptr<NdnNode> GetNdnNodefromId(int ndnNodeId)
+{
+
+	int i; 
+	int flag = 0;
+
+	for (i = 0; i < NODE_CNT; i++) {
+		if (ndnNodeContainer[i].ndnNodeId == ndnNodeId) {
+			flag = 1;
+			break;
+		}
+	}
+	
+	if (flag == 0){
+		cout << "Couldn't find id \n";
+	}
+	return &(ndnNodeContainer[i]);
+
+}
+
+void InstallHelloApp()
+{
+	NodeContainer nodeContainer = NodeContainer::GetGlobal();
+	ndn::AppHelper TxHelper ("ns3::ndn::HelloApp");
+	ApplicationContainer txApp = TxHelper.Install (nodeContainer);
+
+	//txApp.Start (Seconds (1.0));
+	ndn::AppHelper rxHelper ("ns3::ndn::HelloApp");
+	//txApp.Install (nodeContainer.Get (PROD));
+	//rxHelper.Install (nodeContainer.Get (PROD));
+	rxHelper.Install (nodeContainer);
+}
+
+void OnInterest (Ptr<Face> inFace, Ptr<Interest> interest)
+{
+	return;
+}
+
+void ReceiveHello (Ptr<Face> inFace, Ptr<Data> data)
+{
+
+	Ptr <const Packet> packet = data->GetPayload();
+	uint8_t buffer[sizeof(NdnPacket)];
+	Ptr <NdnPacket> ndnPacket = (NdnPacket *)buffer;
+	Ptr<NdnNode> curNdnNode;
+	Ptr<NdnNode> fromNdnNode;
+		
+	packet->CopyData(buffer, sizeof(NdnPacket));
+	fromNdnNode = GetNdnNodefromId(ndnPacket->senderId);
+	curNdnNode = GetNdnNodefromId(ndnPacket->receiverId);
+	cout << "Got from " << fromNdnNode->nodeName << "(id:" << fromNdnNode->ndnNodeId <<  ")" << "\n";
+	cout << "Woken up node is " << curNdnNode->nodeName << "(id:"; 
+	cout << curNdnNode->ndnNodeId <<  ")" << "\n";
+
+	// if sender rootId is less than current rootId then change rootId
+	if (ndnPacket->rootId < curNdnNode->rootId) {
+		cout << "I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")" << "\t";
+		cout << "changing root from " << curNdnNode->rootId; 
+		cout << " " << ndnPacket->rootId  << "\n";
+		curNdnNode->rootId = ndnPacket->rootId;
+	}
+ 
+	return;
+}
+
+
+void SendHello(Ptr<Node> curNode)
+{
+	NdnPacket ndnPacket;
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+	//unsigned int size = oneHopList.size();
+  	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+  	Ptr<NdnNode> nbrNdnNode;
+	Ptr<Node> nbrNode;
+	Ptr<Face> face;
+	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
+	Packet payload;
+
+	ndnPacket.packetType = GET_LABEL;
+	ndnPacket.senderId = curNdnNode->ndnNodeId;
+	ndnPacket.rootId = curNdnNode->rootId; 
+
+	
+  	//send packet to all its neighbours;
+	cout << "Packet sent from " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")" << "\n";
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+		Data data;
+		nbrNode = *(oneHopListIter);
+		nbrNdnNode = GetNdnNodefromNode(nbrNode);
+		cout << "\t\t to \t\t" << nbrNdnNode->nodeName << "(id:" << nbrNdnNode->ndnNodeId <<  ")" << "\n";
+		ndnPacket.receiverId = nbrNdnNode->ndnNodeId;
+	
+		Packet payload((uint8_t *)&ndnPacket, sizeof(NdnPacket));
+		data.SetPayload(&payload);
+		face = GetFace(curNode->GetId(), nbrNode->GetId());
+		face->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&ReceiveHello));
+		face->SendData(&data);
+		face->ReceiveData(&data);
+		sleep(10);
+	}
+}
+
 
 int main (int argc, char *argv[])
 {
@@ -535,17 +667,12 @@ int main (int argc, char *argv[])
 	// Calculate and install FIBs
 	add_fib_entries();
 	//ndn::GlobalRoutingHelper::CalculateRoutes ();
-	ndn::L3Protocol::FaceList m_faces;
-	print_identifiers();
+	//print_identifiers();
+	SendHello(nodeContainer.Get (12));
 
-	ndn::AppHelper txApp ("ns3::ndn::HelloApp");
-	txApp.Install (nodeContainer.Get (PROD)); 
+	//InstallHelloApp(nodeContainer.Get (PROD));
 
-	ndn::AppHelper rxApp ("ns3::ndn::HelloApp");
-	rxApp.Install (nodeContainer.Get (PROD)); 
-	//send_packet(&ndnNodeContainer[PROD]);
-
-	Simulator::Stop (Seconds (20.0));
+	Simulator::Stop (Seconds (10.0));
 	ndn::AppDelayTracer::InstallAll("outfile.txt");
 	Simulator::Run ();
 	Simulator::Destroy ();

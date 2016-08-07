@@ -68,16 +68,20 @@ typedef enum packetType_s {
 class NdnNode : public SimpleRefCount<NdnNode>
 {
 public:
+	NdnNode(void){};	
+	~NdnNode(void) {this->oneHopList.clear();};	
+
 	Ptr<Node> pNode;
 	std::list<Ptr<Node> > oneHopList; //List of one hop nbrs.
 	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
 	std::string nodeName;    // like hostname
 	std::string prefixStr;
-	int nodeId;
+	int ndnNodeId;
 	Ptr<ndn::Name> prefixName;
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
 	int rootId;
+	//ndn::AppHelper *pHelloApp; 
 	// like ip address
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
 // note the twoHopNbr could be the source node also..so always check for that
@@ -90,29 +94,30 @@ class NdnPacket : public SimpleRefCount<NdnPacket>
 public:
 	packetType_t packetType;
 	int senderId;
+	int receiverId;
 	int rootId; //Node identifier which the sender thinks is the root
 };
 
 
-int nodeIdTable[] = {
-		7,		//a
-		3, 		//b
-		6,		//c
-		13,		//d
-		8,		//e
-		2,		//f
-		4,		//g
-		5,		//h
-		1,		//i
-		0,		//j
-		12,		//k
-		14,		//m
-		10,		//n
-		9,		//o
-		16,		//p
-		15,		//q
-		11,		//r
-		17 		//s
+int ndnNodeIdTable[] = {
+		7,		//a 0
+		3, 		//b 1
+		6,		//c 2
+		13,		//d 3
+		8,		//e 4
+		2,		//f 5
+		4,		//g 6
+		5,		//h 7
+		1,		//i 8
+		0,		//j 9
+		12,		//k 10
+		14,		//m 11
+		10,		//n 12
+		9,		//o 13
+		16,		//p 14
+		15,		//q 15
+		11,		//r 16
+		17 		//s 17
 };
 
 std::string prefixNamesArr[] = {
@@ -141,10 +146,13 @@ std::string prefixNamesArr[] = {
 #define PROD 15 // node q
 #define DEST PROD
 
-
 void
 add_path(unsigned firstNode,unsigned SecndNode, int metric, const string str);
 
 void fill_two_hop_nbr_info();
+
+
+Ptr<NdnNode>
+GetNdnNode(Ptr<Node> curNode);
 
 #endif /* SCRATCH_MYNDN_H_ */

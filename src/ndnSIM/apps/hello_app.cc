@@ -86,6 +86,7 @@ HelloApp::SendInterest ()
   
   // Call trace (for logging purposes)
   m_transmittedInterests (interest, this, m_face);
+  //cout << "Interest sent \n" ;
 
   m_face->ReceiveInterest (interest);
 }
@@ -97,7 +98,7 @@ HelloApp::GetNdnNode(Ptr<Node> curNode)
 	int topoId;
   
   topoId = curNode->GetId();
-	pos = nodeIdTable[topoId];
+	pos = ndnNodeIdTable[topoId];
 	
   return &ndnNodeContainer[pos];
 }
@@ -128,32 +129,60 @@ void
 HelloApp::SendHello()
 {
 	NdnPacket ndnPacket;
-	std::list<Ptr<Node> > oneHopList;
 	std::list<Ptr<Node> >::iterator oneHopListIter;
 	//unsigned int size = oneHopList.size();
   Ptr<Node> curNode = GetNode ();
 	Ptr<NdnNode> curNdnNode = GetNdnNode(curNode);
+  Ptr<NdnNode> nbrNdnNode;
 	Ptr<Node> nbrNode;
 	Ptr<Face> face;
 	Data data;
-	
+	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
+  Ptr<ndn::Name> prefix = Create<ndn::Name> ("/hello"); // another way to create name
+
+  // Create and configure ndn::Interest
+  Ptr<ndn::Interest> interest = Create<ndn::Interest> ();
+  UniformVariable rand (0,std::numeric_limits<uint32_t>::max ());
+  interest->SetNonce            (rand.GetValue ());
+  interest->SetName             (prefix);
+  interest->SetInterestLifetime (Seconds (1.0));
+
 	ndnPacket.packetType = GET_LABEL;
-	ndnPacket.senderId = curNdnNode->nodeId;
+	//ndnPacket.senderId = curNdnNode->nodeId;
 	ndnPacket.rootId = curNdnNode->rootId; 
 	Packet payload((uint8_t *)&ndnPacket, sizeof(NdnPacket));
 	data.SetPayload(&payload);
 	
+  //cout << "Packet sent from " << curNdnNode->nodeName << "(id:" << curNdnNode->nodeId <<  ")" << "\n";
 	//send packet to all its neighbours;
 	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
-		nbrNode = *oneHopListIter;
-		face = GetFace(curNode->GetId(), nbrNode->GetId());
-		face->SendData(&data);
+      nbrNode = *oneHopListIter;
+      face = GetFace(curNode->GetId(), nbrNode->GetId());
+      face->SendData(&data);
+      nbrNdnNode = GetNdnNode(nbrNode);
+      //cout << "\t\t to \t\t" << nbrNdnNode->nodeName << "(id:" << nbrNdnNode->nodeId <<  ")" << "\n";
+      face->ReceiveInterest (interest);
 	}
-
-	cout << "Packet sent from %d" << curNdnNode->nodeName << "\n";
 }
 
+// Callback that will be called when Data arrives
+void
+HelloApp::OnData (Ptr<const ndn::Data> data)
+{
+  NS_LOG_DEBUG ("Receiving Data packet for " << data->GetName ());
+  Ptr<Node> curNode = GetNode ();
+	Ptr<NdnNode> curNdnNode = GetNdnNode(curNode);
+  Ptr <const Packet> packet = data->GetPayload();
+  uint8_t buffer[sizeof(NdnPacket)];
+  Ptr <NdnPacket> ndnPacket = (NdnPacket *)buffer;
+  	
+  packet->CopyData(buffer, sizeof(NdnPacket));
 
+  cout << "Rxed data from " << ndnPacket->senderId << "\n";
+  //cout << "Woken up node is " << curNdnNode->nodeName << "(id:" << curNdnNode->nodeId <<  ")" << "\n";
+
+  //cout << "Packet rxed by " << curNdnNode->nodeName << "(id:" << curNdnNode->nodeId <<  ")" << "\n";
+}
 
 // Callback that will be called when Interest arrives
 void
@@ -177,23 +206,6 @@ HelloApp::OnInterest (Ptr<const ndn::Interest> interest)
   m_transmittedDatas (data, this, m_face);
 
   m_face->ReceiveData (data); 
-}
-
-// Callback that will be called when Data arrives
-void
-HelloApp::OnData (Ptr<const ndn::Data> data)
-{
-  NS_LOG_DEBUG ("Receiving Data packet for " << data->GetName ());
-  Ptr <const Packet> packet;
-  uint8_t buffer[sizeof(NdnPacket)];
-  Ptr <NdnPacket> ndnPacket = (NdnPacket *)buffer;
-  	
-  packet = data->GetPayload();
-  packet->CopyData(buffer, sizeof(NdnPacket));
-
-  cout << "Root is " << ndnPacket->rootId << "\n";
-
-  std::cout << "DATA received for name " << data->GetName () << std::endl;
 }
 
 } // namespace ns3
