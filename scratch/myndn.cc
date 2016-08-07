@@ -409,29 +409,6 @@ void add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
 	}
 }
 
-Ptr<Face> get_face(unsigned firstNodeId, unsigned secondNodeId) {
-	Ptr<Node> node1 = NodeList::GetNode(firstNodeId);
-	Ptr<Channel> channel;
-	Ptr<ndn::L3Protocol> l3Prot;
-	Ptr<Face> face;
-
-	unsigned i, j;
-	for(i = 0; i < node1->GetNDevices(); i++) {
-		channel = node1->GetDevice(i)->GetChannel();
-		for(j = 0; j < channel->GetNDevices(); j++){
-			if(channel->GetDevice(j)->GetNode()->GetId() == secondNodeId){
-				//Ptr<Ipv4> stack = node->GetObject<Ipv4> ();
-				l3Prot = node1->GetObject<ndn::L3Protocol> ();
-		       	face = l3Prot->GetFace(i);
-			}
-		}
-	}
-	return face;
-}
-
-
-
-
 /*
 void recieve_packet(Ptr<NdnNode> curNdnNode)
 {
@@ -542,7 +519,7 @@ void OnInterest (Ptr<Face> inFace, Ptr<Interest> interest)
 	return;
 }
 
-void ReceiveHello (Ptr<Face> inFace, Ptr<Data> data)
+void ReceiveHello (Ptr<Face> pFace, Ptr<Data> data)
 {
 
 	Ptr <const Packet> packet = data->GetPayload();
@@ -561,11 +538,12 @@ void ReceiveHello (Ptr<Face> inFace, Ptr<Data> data)
 	// if sender parentId is less than current parentId then change parentId
 	if (ndnPacket->parentId < curNdnNode->parentId) {
 		cout << "I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")" << "\t";
-		cout << "changing root from " << curNdnNode->parentId; 
+		cout << "changing parent from " << curNdnNode->parentId; 
 		cout << " " << ndnPacket->parentId  << "\n";
 		curNdnNode->parentId = ndnPacket->parentId;
+		cout<<"here \n";
 	}
- 
+    		cout<<"here 1\n";
 	return;
 }
 
@@ -578,7 +556,7 @@ void SendHello(Ptr<Node> curNode)
   	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
   	Ptr<NdnNode> nbrNdnNode;
 	Ptr<Node> nbrNode;
-	Ptr<Face> face;
+	Ptr<Face> pFace;
 	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
 	Packet payload;
 
@@ -598,11 +576,13 @@ void SendHello(Ptr<Node> curNode)
 	
 		Packet payload((uint8_t *)&ndnPacket, sizeof(NdnPacket));
 		data.SetPayload(&payload);
-		face = GetFace(curNode->GetId(), nbrNode->GetId());
-		face->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&ReceiveHello));
-		//face->SendData(&data);
-		face->ReceiveData(&data);
-		sleep(10);
+		pFace = GetFace(curNode->GetId(), nbrNode->GetId());
+		//pFace->UnRegisterProtocolHandlers ();
+		//pFace->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&ReceiveHello));
+		//pFace->SendData(&data);
+		//pFace->ReceiveData(&data);
+		ReceiveHello(pFace, &data);
+		cout <<"bullshit \n";
 	}
 }
 

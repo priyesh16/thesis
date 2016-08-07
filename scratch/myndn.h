@@ -25,7 +25,6 @@
 #include "ns3/ndnSIM-module.h"
 #include "../src/ndnSIM/helper/ndn-global-routing-helper.h"
 #include "../src/ndnSIM/model/ndn-net-device-face.h"
-#include "subdir/ndn_node_container.h"
 #include "../src/ndnSIM/model/ndn-global-router.h"
 
 using namespace std;
@@ -151,6 +150,7 @@ add_path(unsigned firstNode,unsigned SecndNode, int metric, const string str);
 
 void fill_two_hop_nbr_info();
 
+void ReceiveHello (Ptr<Face> pFace, Ptr<Data> data);
 
 Ptr<NdnNode>
 GetNdnNode(Ptr<Node> curNode);
