@@ -80,7 +80,7 @@ public:
 	Ptr<ndn::Name> prefixName;
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
-	int rootId;
+	int parentId;
 	//ndn::AppHelper *pHelloApp; 
 	// like ip address
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
@@ -95,7 +95,7 @@ public:
 	packetType_t packetType;
 	int senderId;
 	int receiverId;
-	int rootId; //Node identifier which the sender thinks is the root
+	int parentId; //Node identifier which the sender thinks is the root
 };
 
 

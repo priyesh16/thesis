@@ -371,7 +371,7 @@ void create_node_container() {
 		ndnNodeContainer[pos].nodeName = fromName;
 		ndnNodeContainer[pos].oneHopList.push_back(to);
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
-		ndnNodeContainer[pos].rootId = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].parentId = ndnNodeIdTable[topoId];
 		//ndnNodeContainer[pos].pHelloApp = NULL;
 
 		//std::cout << "Pri : " << toName << "\t\t -> " << fromName << " : " << from->GetId() << " " << pos << "\n";
@@ -381,7 +381,7 @@ void create_node_container() {
 		ndnNodeContainer[pos].nodeName = toName;
 		ndnNodeContainer[pos].oneHopList.push_back(from);
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
-		ndnNodeContainer[pos].rootId = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].parentId = ndnNodeIdTable[topoId];
 		//ndnNodeContainer[pos].pHelloApp = NULL;
 	}
 
@@ -558,12 +558,12 @@ void ReceiveHello (Ptr<Face> inFace, Ptr<Data> data)
 	cout << "Woken up node is " << curNdnNode->nodeName << "(id:"; 
 	cout << curNdnNode->ndnNodeId <<  ")" << "\n";
 
-	// if sender rootId is less than current rootId then change rootId
-	if (ndnPacket->rootId < curNdnNode->rootId) {
+	// if sender parentId is less than current parentId then change parentId
+	if (ndnPacket->parentId < curNdnNode->parentId) {
 		cout << "I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")" << "\t";
-		cout << "changing root from " << curNdnNode->rootId; 
-		cout << " " << ndnPacket->rootId  << "\n";
-		curNdnNode->rootId = ndnPacket->rootId;
+		cout << "changing root from " << curNdnNode->parentId; 
+		cout << " " << ndnPacket->parentId  << "\n";
+		curNdnNode->parentId = ndnPacket->parentId;
 	}
  
 	return;
@@ -584,7 +584,7 @@ void SendHello(Ptr<Node> curNode)
 
 	ndnPacket.packetType = GET_LABEL;
 	ndnPacket.senderId = curNdnNode->ndnNodeId;
-	ndnPacket.rootId = curNdnNode->rootId; 
+	ndnPacket.parentId = curNdnNode->parentId; 
 
 	
   	//send packet to all its neighbours;
@@ -600,7 +600,7 @@ void SendHello(Ptr<Node> curNode)
 		data.SetPayload(&payload);
 		face = GetFace(curNode->GetId(), nbrNode->GetId());
 		face->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&ReceiveHello));
-		face->SendData(&data);
+		//face->SendData(&data);
 		face->ReceiveData(&data);
 		sleep(10);
 	}
