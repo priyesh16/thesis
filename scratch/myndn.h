@@ -60,8 +60,8 @@ public:
 } ;
 
 typedef enum packetType_s {
-	GET_LABEL,
-	SEND_LABEL
+	GET_PARENT,
+	GET_PREFIXNAME,
 }packetType_t;
 
 class NdnNode : public SimpleRefCount<NdnNode>
@@ -150,7 +150,9 @@ add_path(unsigned firstNode,unsigned SecndNode, int metric, const string str);
 
 void fill_two_hop_nbr_info();
 
-void ReceiveHello (Ptr<Face> pFace, Ptr<Data> data);
+void OnData (Ptr<Face> pFace, Ptr<Data> data);
+
+void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket);
 
 Ptr<NdnNode>
 GetNdnNode(Ptr<Node> curNode);

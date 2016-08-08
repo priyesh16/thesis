@@ -519,32 +519,69 @@ void OnInterest (Ptr<Face> inFace, Ptr<Interest> interest)
 	return;
 }
 
-void ReceiveHello (Ptr<Face> pFace, Ptr<Data> data)
+void OnData (Ptr<Face> pFace, Ptr<Data> data)
 {
-
 	Ptr <const Packet> packet = data->GetPayload();
-	uint8_t buffer[sizeof(NdnPacket)];
-	Ptr <NdnPacket> ndnPacket = (NdnPacket *)buffer;
+	//uint8_t buffer[sizeof(NdnPacket)];
+	NdnPacket ndnPacket;
+
+	packet->CopyData((uint8_t *)&ndnPacket, sizeof(NdnPacket));
+
+	if (ndnPacket.packetType == GET_PARENT) {
+		FindParent(pFace, ndnPacket);
+	}
+
+
+	return;
+}
+
+void RequestPrefixName(Ptr<Node> curNode)
+{
+	NdnPacket ndnPacket;
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+	//unsigned int size = oneHopList.size();
+  	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+  	Ptr<NdnNode> parentNdnNode = GetNdnNodefromId(curNdnNode->parentId);
+	Ptr<Node> parentNode;
+	Ptr<Face> pFace;
+	Ptr<Data> pData = Create<Data> ();
+	Ptr<Packet> pPayload;
+
+	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
+
+	ndnPacket.packetType = GET_PREFIXNAME;
+	ndnPacket.senderId = curNdnNode->ndnNodeId;
+	ndnPacket.parentId = curNdnNode->parentId; 
+	ndnPacket.receiverId = curNdnNode->parentId;
+
+  	//send packet to parent;
+	//cout << "Packet sent from " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
+	//cout << " to " << parentNdnNode->nodeName << "(id:" << parentNdnNode->ndnNodeId <<  ")" << "\n";
+	pPayload = Create<Packet> ((uint8_t *)&ndnPacket, sizeof(NdnPacket));
+	pData->SetPayload(pPayload);
+	pFace = GetFace(curNode->GetId(), parentNode->GetId());
+	pFace->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&OnData));
+	//pFace->SendData(&data);
+	pFace->ReceiveData(pData);
+	//ReceiveHello(pFace, pdata);
+}
+
+void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket) {
 	Ptr<NdnNode> curNdnNode;
 	Ptr<NdnNode> fromNdnNode;
-		
-	packet->CopyData(buffer, sizeof(NdnPacket));
-	fromNdnNode = GetNdnNodefromId(ndnPacket->senderId);
-	curNdnNode = GetNdnNodefromId(ndnPacket->receiverId);
-	cout << "Got from " << fromNdnNode->nodeName << "(id:" << fromNdnNode->ndnNodeId <<  ")" << "\n";
-	cout << "Woken up node is " << curNdnNode->nodeName << "(id:"; 
-	cout << curNdnNode->ndnNodeId <<  ")" << "\n";
+	
+	fromNdnNode = GetNdnNodefromId(ndnPacket.senderId);
+	curNdnNode = GetNdnNodefromId(ndnPacket.receiverId);
 
-	// if sender parentId is less than current parentId then change parentId
-	if (ndnPacket->parentId < curNdnNode->parentId) {
-		cout << "I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")" << "\t";
-		cout << "changing parent from " << curNdnNode->parentId; 
-		cout << " " << ndnPacket->parentId  << "\n";
-		curNdnNode->parentId = ndnPacket->parentId;
-		cout<<"here \n";
+		// if sender parentId is less than current parentId then change parentId
+	if (ndnPacket.parentId < curNdnNode->parentId) {
+		cout << "<!!Notification!!> I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
+		cout << "and I'm changing my parent from " << curNdnNode->parentId; 
+		cout << "to " << ndnPacket.parentId  << "\n";
+		curNdnNode->parentId = ndnPacket.parentId;
+		// Parent updated so invalidate prefixName
+		curNdnNode->prefixName = Create<ndn::Name> ("/invalid"); // another way to create name;
 	}
-    		cout<<"here 1\n";
-	return;
 }
 
 
@@ -557,32 +594,32 @@ void SendHello(Ptr<Node> curNode)
   	Ptr<NdnNode> nbrNdnNode;
 	Ptr<Node> nbrNode;
 	Ptr<Face> pFace;
-	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
-	Packet payload;
+	Ptr<Data> pData = Create<Data> ();
+	Ptr<Packet> pPayload;
 
-	ndnPacket.packetType = GET_LABEL;
+	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
+
+	ndnPacket.packetType = GET_PARENT;
 	ndnPacket.senderId = curNdnNode->ndnNodeId;
 	ndnPacket.parentId = curNdnNode->parentId; 
 
 	
   	//send packet to all its neighbours;
-	cout << "Packet sent from " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")" << "\n";
 	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
-		Data data;
+
 		nbrNode = *(oneHopListIter);
 		nbrNdnNode = GetNdnNodefromNode(nbrNode);
-		cout << "\t\t to \t\t" << nbrNdnNode->nodeName << "(id:" << nbrNdnNode->ndnNodeId <<  ")" << "\n";
+		//cout << "Packet sent from " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
+		//cout << " to " << nbrNdnNode->nodeName << "(id:" << nbrNdnNode->ndnNodeId <<  ")" << "\n";
 		ndnPacket.receiverId = nbrNdnNode->ndnNodeId;
 	
-		Packet payload((uint8_t *)&ndnPacket, sizeof(NdnPacket));
-		data.SetPayload(&payload);
+		pPayload = Create<Packet> ((uint8_t *)&ndnPacket, sizeof(NdnPacket));
+		pData->SetPayload(pPayload);
 		pFace = GetFace(curNode->GetId(), nbrNode->GetId());
-		//pFace->UnRegisterProtocolHandlers ();
-		//pFace->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&ReceiveHello));
+		pFace->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&OnData));
 		//pFace->SendData(&data);
-		//pFace->ReceiveData(&data);
-		ReceiveHello(pFace, &data);
-		cout <<"bullshit \n";
+		pFace->ReceiveData(pData);
+		//ReceiveHello(pFace, pdata);
 	}
 }
 
