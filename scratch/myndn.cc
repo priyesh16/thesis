@@ -384,7 +384,7 @@ void create_node_container() {
 		ndnNodeContainer[pos].parentId = ndnNodeIdTable[topoId];
 		//ndnNodeContainer[pos].pHelloApp = NULL;
 	}
-
+cout << "fuck" << ndnNodeContainer[9].prefixName->toUri() << "\n";
 	//std::cout << std::endl;
 	fill_two_hop_nbr_info();
 }
@@ -610,10 +610,12 @@ void AssignPrefixName(Ptr<Face> pFace, NdnPacket ndnPacket) {
 		parentNdnNode->prefixName->appendNumber(0);
 	}
 
-
+	Name name("/what");
+	cout << name.toUri();
 	cout << "<!!Notification!!> I am " << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")";
 	cout << "and I'm changing my name from " << childNdnNode->prefixName; 
-	cout << " to " << " "  << "\n";
+	//cout << " to " << childName.toUri()  << "\n";
+	cout << "\n";
 	childNdnNode->parentId = ndnPacket.parentId;
 }
 
@@ -696,6 +698,7 @@ int main (int argc, char *argv[])
 	// create the node container
 	create_node_container();
 
+	
 	fill_names();
 	fill_nbr_table();
 	add_node_identifiers();
