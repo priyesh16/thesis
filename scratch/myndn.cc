@@ -531,6 +531,9 @@ void OnData (Ptr<Face> pFace, Ptr<Data> data)
 		FindParent(pFace, ndnPacket);
 	}
 
+	if (ndnPacket.packetType == GET_PREFIXNAME) {
+		AssignPrefixName(pFace, ndnPacket);
+	}
 
 	return;
 }
@@ -542,7 +545,6 @@ void RequestPrefixName(Ptr<Node> curNode)
 	//unsigned int size = oneHopList.size();
   	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
   	Ptr<NdnNode> parentNdnNode = GetNdnNodefromId(curNdnNode->parentId);
-	Ptr<Node> parentNode;
 	Ptr<Face> pFace;
 	Ptr<Data> pData = Create<Data> ();
 	Ptr<Packet> pPayload;
@@ -559,11 +561,60 @@ void RequestPrefixName(Ptr<Node> curNode)
 	//cout << " to " << parentNdnNode->nodeName << "(id:" << parentNdnNode->ndnNodeId <<  ")" << "\n";
 	pPayload = Create<Packet> ((uint8_t *)&ndnPacket, sizeof(NdnPacket));
 	pData->SetPayload(pPayload);
-	pFace = GetFace(curNode->GetId(), parentNode->GetId());
-	pFace->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&OnData));
-	//pFace->SendData(&data);
-	pFace->ReceiveData(pData);
-	//ReceiveHello(pFace, pdata);
+	pFace = GetFace(curNode->GetId(), curNdnNode->parentId);
+	//pFace->UnRegisterProtocolHandlers();
+	//pFace->RegisterProtocolHandlers (MakeCallback (&OnInterest), MakeCallback (&OnData));
+	//pFace->ReceiveData(pData);
+	OnData(pFace, pData);
+}
+
+int GetChildId(Ptr<NdnNode> parentNdnNode, Ptr<NdnNode> childNdnNode)
+{
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+  	Ptr<NdnNode> nbrNdnNode;
+	Ptr<Node> nbrNode;
+	Ptr<Face> pFace;
+	int childId = 0;
+	
+	std::list<Ptr<Node> > oneHopList = parentNdnNode->oneHopList;
+
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+		nbrNode = *(oneHopListIter);
+		nbrNdnNode = GetNdnNodefromNode(nbrNode);
+		if (childNdnNode->ndnNodeId == nbrNdnNode->ndnNodeId) {
+			break;
+		}
+		childId++;
+	}
+	return childId;
+}
+
+void AssignPrefixName(Ptr<Face> pFace, NdnPacket ndnPacket) {
+	Ptr<NdnNode> childNdnNode;
+	Ptr<NdnNode> parentNdnNode;
+	int childId;
+	ndn::Name childName;
+	
+	childNdnNode = GetNdnNodefromId(ndnPacket.senderId);
+	parentNdnNode = GetNdnNodefromId(ndnPacket.receiverId);
+
+	// If parent has a name already then assign a name to the child
+	if (parentNdnNode->prefixName != NULL)
+	{
+		childId = GetChildId(parentNdnNode, childNdnNode);
+		childName = parentNdnNode->prefixName->appendNumber(childId);
+		cout << childName.toUri();
+	}
+	// If root then assign name to zero
+	if (parentNdnNode->parentId == parentNdnNode->ndnNodeId) {
+		parentNdnNode->prefixName->appendNumber(0);
+	}
+
+
+	cout << "<!!Notification!!> I am " << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")";
+	cout << "and I'm changing my name from " << childNdnNode->prefixName; 
+	cout << " to " << " "  << "\n";
+	childNdnNode->parentId = ndnPacket.parentId;
 }
 
 void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket) {
@@ -577,7 +628,7 @@ void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket) {
 	if (ndnPacket.parentId < curNdnNode->parentId) {
 		cout << "<!!Notification!!> I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
 		cout << "and I'm changing my parent from " << curNdnNode->parentId; 
-		cout << "to " << ndnPacket.parentId  << "\n";
+		cout << " to " << ndnPacket.parentId  << "\n";
 		curNdnNode->parentId = ndnPacket.parentId;
 		// Parent updated so invalidate prefixName
 		curNdnNode->prefixName = Create<ndn::Name> ("/invalid"); // another way to create name;
@@ -686,7 +737,7 @@ int main (int argc, char *argv[])
 	//ndn::GlobalRoutingHelper::CalculateRoutes ();
 	//print_identifiers();
 	SendHello(nodeContainer.Get (12));
-
+	RequestPrefixName(nodeContainer.Get (13));
 	//InstallHelloApp(nodeContainer.Get (PROD));
 
 	Simulator::Stop (Seconds (10.0));

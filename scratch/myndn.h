@@ -154,6 +154,8 @@ void OnData (Ptr<Face> pFace, Ptr<Data> data);
 
 void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket);
 
+void AssignPrefixName(Ptr<Face> pFace, NdnPacket ndnPacket) ;
+
 Ptr<NdnNode>
 GetNdnNode(Ptr<Node> curNode);
 
