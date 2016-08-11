@@ -30,6 +30,10 @@
 using namespace std;
 using namespace ns3;
 using namespace ndn;
+ndn::Name initialPrefixName = Name("/initial");
+ndn::Name invalidPrefixName = Name("/invalid");
+ndn::Name rootPrefixName = Name("/0");
+int rootId = 1000; // Assign an invalid root id in the begining
 
 typedef ndn::ndnSIM::trie_with_policy< ndn::Name,
 					ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
@@ -41,6 +45,8 @@ typedef ndn::ndnSIM::trie_with_policy< Name,
                                     ndnSIM::counting_policy_traits > super;
 
 std::string interestPrefixstr = "/prefix";
+
+
 
 class NodeInfo {
 public:
@@ -73,10 +79,11 @@ public:
 	Ptr<Node> pNode;
 	std::list<Ptr<Node> > oneHopList; //List of one hop nbrs.
 	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
+	std::list<Ptr<NdnNode> > childrenList; //List of one hop nbrs.
 	std::string nodeName;    // like hostname
-	std::string prefixStr;
+	//std::string prefixStr;
 	int ndnNodeId;
-	Ptr<ndn::Name> prefixName;
+	ndn::Name prefixName;
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
 	int parentId;
@@ -97,6 +104,17 @@ public:
 	int parentId; //Node identifier which the sender thinks is the root
 };
 
+typedef enum err_s
+{
+	NDN_OK,
+	NDN_PARENT_HAS_NO_NAME,
+}err_t;
+
+typedef enum direction_s
+{
+	NDN_INCREASING_NODE_ID,
+	NDN_ROOT_TO_CHILDREN,
+}direction_t;
 
 int ndnNodeIdTable[] = {
 		7,		//a 0
@@ -152,11 +170,24 @@ void fill_two_hop_nbr_info();
 
 void OnData (Ptr<Face> pFace, Ptr<Data> data);
 
-void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket);
+void FindParentThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket);
 
-void AssignPrefixName(Ptr<Face> pFace, NdnPacket ndnPacket) ;
+void AssignPrefixNameThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket);
 
-Ptr<NdnNode>
-GetNdnNode(Ptr<Node> curNode);
+void NotifyParentChange(int curId, int preId, int postId);
+
+void NotifyNameChange(int curId, Name preName, Name postName);
+
+Ptr<NdnNode> GetNdnNode(Ptr<Node> curNode);
+
+void PrintChildren(Ptr<Node> curNode);
+
+void FillChildrenList(Ptr<Node> curNode);
+
+void FindParent(Ptr<Node> curNode);
+
+typedef void (*AllCallFuncttion)(Ptr<Node> curNode);
+
+void AllNodesCall(AllCallFuncttion function);
 
 #endif /* SCRATCH_MYNDN_H_ */

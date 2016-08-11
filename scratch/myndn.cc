@@ -344,7 +344,7 @@ void fill_two_hop_nbr_info() {
 	}
 }
 
-void create_node_container() {
+void CreateNodeContainer() {
 	std::vector<std::string>::const_iterator namesIter;
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
 	std::list<TopologyReader::Link> links;
@@ -356,6 +356,7 @@ void create_node_container() {
 	int topoId;
 	int size = nodeContainer.GetN();
 	ndnNodeContainer.resize(size);
+	ndn::Name initialPrefixName = Name("/initial");
 
 	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
 
@@ -372,6 +373,7 @@ void create_node_container() {
 		ndnNodeContainer[pos].oneHopList.push_back(to);
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
 		ndnNodeContainer[pos].parentId = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].prefixName = initialPrefixName;
 		//ndnNodeContainer[pos].pHelloApp = NULL;
 
 		//std::cout << "Pri : " << toName << "\t\t -> " << fromName << " : " << from->GetId() << " " << pos << "\n";
@@ -382,9 +384,10 @@ void create_node_container() {
 		ndnNodeContainer[pos].oneHopList.push_back(from);
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
 		ndnNodeContainer[pos].parentId = ndnNodeIdTable[topoId];
+		ndnNodeContainer[pos].prefixName = initialPrefixName;
 		//ndnNodeContainer[pos].pHelloApp = NULL;
 	}
-cout << "fuck" << ndnNodeContainer[9].prefixName->toUri() << "\n";
+
 	//std::cout << std::endl;
 	fill_two_hop_nbr_info();
 }
@@ -432,7 +435,7 @@ void recieve_packet(Ptr<NdnNode> curNdnNode)
 		face->SendData(&data);
 	}
 }
-*/
+
 
 void fill_labels()
 {
@@ -448,7 +451,7 @@ void fill_labels()
 		}	
 
 }
-
+*/
 Ptr<Face> GetFace(unsigned firstNodeId, unsigned secondNodeId) 
 {
 	Ptr<Node> node1 = NodeList::GetNode(firstNodeId);
@@ -528,11 +531,11 @@ void OnData (Ptr<Face> pFace, Ptr<Data> data)
 	packet->CopyData((uint8_t *)&ndnPacket, sizeof(NdnPacket));
 
 	if (ndnPacket.packetType == GET_PARENT) {
-		FindParent(pFace, ndnPacket);
+		FindParentThruMsg(pFace, ndnPacket);
 	}
 
 	if (ndnPacket.packetType == GET_PREFIXNAME) {
-		AssignPrefixName(pFace, ndnPacket);
+		AssignPrefixNameThruMsg(pFace, ndnPacket);
 	}
 
 	return;
@@ -556,7 +559,7 @@ void RequestPrefixName(Ptr<Node> curNode)
 	ndnPacket.parentId = curNdnNode->parentId; 
 	ndnPacket.receiverId = curNdnNode->parentId;
 
-  	//send packet to parent;
+  	//send packet to parent;\n
 	//cout << "Packet sent from " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
 	//cout << " to " << parentNdnNode->nodeName << "(id:" << parentNdnNode->ndnNodeId <<  ")" << "\n";
 	pPayload = Create<Packet> ((uint8_t *)&ndnPacket, sizeof(NdnPacket));
@@ -589,37 +592,38 @@ int GetChildId(Ptr<NdnNode> parentNdnNode, Ptr<NdnNode> childNdnNode)
 	return childId;
 }
 
-void AssignPrefixName(Ptr<Face> pFace, NdnPacket ndnPacket) {
+void AssignPrefixNameThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket) {
 	Ptr<NdnNode> childNdnNode;
 	Ptr<NdnNode> parentNdnNode;
 	int childId;
-	ndn::Name childName;
+	std::stringstream sstream; 
+	string strChildId; 
+	ndn::Name preName;
 	
 	childNdnNode = GetNdnNodefromId(ndnPacket.senderId);
 	parentNdnNode = GetNdnNodefromId(ndnPacket.receiverId);
 
+	preName = childNdnNode->prefixName;
+	childId = GetChildId(parentNdnNode, childNdnNode);
+	sstream << childId;
+	strChildId = sstream.str();
 	// If parent has a name already then assign a name to the child
-	if (parentNdnNode->prefixName != NULL)
+	if (parentNdnNode->prefixName != initialPrefixName)
 	{
-		childId = GetChildId(parentNdnNode, childNdnNode);
-		childName = parentNdnNode->prefixName->appendNumber(childId);
-		cout << childName.toUri();
+		childNdnNode->prefixName = parentNdnNode->prefixName.append(strChildId);
 	}
-	// If root then assign name to zero
+	// If root then assign name to root prefix name
 	if (parentNdnNode->parentId == parentNdnNode->ndnNodeId) {
-		parentNdnNode->prefixName->appendNumber(0);
+		parentNdnNode->prefixName = rootPrefixName;
+		childNdnNode->prefixName = parentNdnNode->prefixName.append(strChildId);
 	}
 
-	Name name("/what");
-	cout << name.toUri();
-	cout << "<!!Notification!!> I am " << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")";
-	cout << "and I'm changing my name from " << childNdnNode->prefixName; 
-	//cout << " to " << childName.toUri()  << "\n";
-	cout << "\n";
-	childNdnNode->parentId = ndnPacket.parentId;
+	NotifyNameChange(childNdnNode->ndnNodeId, preName, childNdnNode->prefixName);
+	return;
 }
 
-void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket) {
+
+void FindParentThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket) {
 	Ptr<NdnNode> curNdnNode;
 	Ptr<NdnNode> fromNdnNode;
 	
@@ -628,12 +632,154 @@ void FindParent(Ptr<Face> pFace, NdnPacket ndnPacket) {
 
 		// if sender parentId is less than current parentId then change parentId
 	if (ndnPacket.parentId < curNdnNode->parentId) {
-		cout << "<!!Notification!!> I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
-		cout << "and I'm changing my parent from " << curNdnNode->parentId; 
-		cout << " to " << ndnPacket.parentId  << "\n";
+		NotifyParentChange(curNdnNode->ndnNodeId, curNdnNode->parentId, ndnPacket.parentId);
 		curNdnNode->parentId = ndnPacket.parentId;
 		// Parent updated so invalidate prefixName
-		curNdnNode->prefixName = Create<ndn::Name> ("/invalid"); // another way to create name;
+		curNdnNode->prefixName = invalidPrefixName;
+	}
+}
+
+void NotifyNameChange(int curId, Name preName, Name postName)
+{
+	Ptr<NdnNode> curNdnNode = GetNdnNodefromId(curId);
+	string curName = curNdnNode->nodeName;
+
+	cout << "<!!Notification!!> I am " << curName << "(id:" << curId <<  ")";
+	cout << " and I'm changing my name from " << preName.toUri();
+	cout << " to " << postName.toUri() << "\n";
+}
+
+void NotifyParentChange(int curId, int preId, int postId)
+{
+	Ptr<NdnNode> curNdnNode = GetNdnNodefromId(curId);
+	Ptr<NdnNode> preNdnNode = GetNdnNodefromId(preId);
+	Ptr<NdnNode> postNdnNode = GetNdnNodefromId(postId);	
+	string curName = curNdnNode->nodeName;
+	string preName = preNdnNode->nodeName;
+	string postName = postNdnNode->nodeName;
+
+	cout << "<!!Notification!!> I am " << curName << "(id:" << curId <<  ")";
+	cout << " and I'm changing my parent from " << preName << "(id:" << preId <<  ")";
+	cout << " to " << postName << "(id:" << postId <<  ")" <<  "\n";
+}
+
+
+void FindParent(Ptr<Node> curNode)
+{
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+	//unsigned int size = oneHopList.size();
+  	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+  	Ptr<NdnNode> nbrNdnNode;
+	Ptr<Node> nbrNode;
+	int minId = curNdnNode->ndnNodeId;
+
+	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
+
+	//send packet to all its neighbours;
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+
+		nbrNode = *(oneHopListIter);
+		nbrNdnNode = GetNdnNodefromNode(nbrNode);
+
+		if (minId > nbrNdnNode->ndnNodeId)
+		{
+			minId = nbrNdnNode->ndnNodeId;
+		}
+	}
+	NotifyParentChange(curNdnNode->ndnNodeId, curNdnNode->parentId,  minId);
+	curNdnNode->parentId = minId;
+	// check if curNode is root Node
+	if (curNdnNode->parentId == curNdnNode->ndnNodeId){
+		cout << "<!!Notification!!> I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
+		cout << " and I'm the root! \n"; 
+	}
+}
+
+
+
+void AssignPrefixName(Ptr<Node> curNode) {
+	Ptr<NdnNode> childNdnNode = GetNdnNodefromNode(curNode);
+	Ptr<NdnNode> parentNdnNode = GetNdnNodefromId(childNdnNode->parentId);;
+	int childId;
+	std::stringstream sstream; 
+	string strChildId; 
+	ndn::Name preName;
+	
+	preName = childNdnNode->prefixName;
+	childId = GetChildId(parentNdnNode, childNdnNode);
+	sstream << childId;
+	strChildId = sstream.str();
+	
+	// If Root then assign root prefix name
+	if (childNdnNode->parentId == childNdnNode->ndnNodeId) {
+		childNdnNode->prefixName = rootPrefixName;
+		NotifyNameChange(childNdnNode->ndnNodeId, preName, childNdnNode->prefixName);
+	}
+	
+	// If parent has a name already then assign a name to the child
+	if (parentNdnNode->prefixName != initialPrefixName)
+	{
+		childNdnNode->prefixName = parentNdnNode->prefixName.append(strChildId);
+		NotifyNameChange(childNdnNode->ndnNodeId, preName, childNdnNode->prefixName);
+	}
+	return;
+}
+
+void PrintNeighbours(Ptr<Node> curNode)
+{
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+	//unsigned int size = oneHopList.size();
+  	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+  	Ptr<NdnNode> nbrNdnNode;
+	Ptr<Node> nbrNode;
+	
+	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
+
+	cout << "I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
+	cout << " and my neighbours are :\n";	
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+
+		nbrNode = *(oneHopListIter);
+		nbrNdnNode = GetNdnNodefromNode(nbrNode);
+
+		cout << "\t\t\t\t\t" << nbrNdnNode->nodeName << "(id:" << nbrNdnNode->ndnNodeId <<  ")\n";
+	}
+}
+
+void PrintChildren(Ptr<Node> curNode)
+{
+	std::list<Ptr<NdnNode> >::iterator childrenListIter;
+	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+  	Ptr<NdnNode> childNdnNode;
+
+	std::list<Ptr<NdnNode> > childrenList = curNdnNode->childrenList;
+
+	cout << "I am " << curNdnNode->nodeName << "(id:" << curNdnNode->ndnNodeId <<  ")";
+	cout << " and my children are :\n";
+	//send packet to all its neighbours;
+	for(childrenListIter = childrenList.begin() ; childrenListIter != childrenList.end() ; childrenListIter++ ) {
+		childNdnNode = *(childrenListIter);
+		cout << "\t\t\t\t\t" << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")\n";
+	}
+}
+
+void FillChildrenList(Ptr<Node> curNode)
+{
+	std::list<Ptr<Node> >::iterator oneHopListIter;
+	//unsigned int size = oneHopList.size();
+  	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+  	Ptr<NdnNode> nbrNdnNode;
+	Ptr<Node> nbrNode;
+	
+	std::list<Ptr<Node> > oneHopList = curNdnNode->oneHopList;
+
+	//send packet to all its neighbours;
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+
+		nbrNode = *(oneHopListIter);
+		nbrNdnNode = GetNdnNodefromNode(nbrNode);
+		
+		curNdnNode->childrenList.push_back(nbrNdnNode);
 	}
 }
 
@@ -676,6 +822,105 @@ void SendHello(Ptr<Node> curNode)
 	}
 }
 
+void GetRootId()
+{
+	Ptr<NdnNode> curNdnNode;
+	Ptr<Node> curNode;
+	NodeContainer nodeContainer = NodeContainer::GetGlobal();
+	int size = ndnNodeContainer.size();
+	for (int i = 0; i < size; i++) {
+		curNode = nodeContainer.Get (i); 
+		curNdnNode = GetNdnNodefromNode(curNode);
+		if (rootId > curNdnNode->ndnNodeId) {
+			rootId = curNdnNode->ndnNodeId;
+		}
+	}
+	curNdnNode = GetNdnNodefromNode(rootId);
+	curNdnNode->parentId = rootId;
+		
+}
+
+// Iterative method to find height of Bianry Tree
+void PrintLevelOrder()
+{
+  	Ptr<NdnNode> rootNdnNode = GetNdnNodefromId(rootId);
+	std::list<Ptr<NdnNode> >::iterator childrenListIter;
+  	Ptr<NdnNode> childNdnNode;
+	int j = 0;
+
+	// Base Case
+    if (rootNdnNode == NULL)  return;
+ 
+    // Create an empty queue for level order tarversal
+    queue <Ptr<NdnNode> > q;
+ 
+    // Enqueue Root and initialize height
+    q.push(rootNdnNode);
+ 
+    while (q.empty() == false)
+    {
+		// Print front of queue and remove it from queue
+        Ptr<NdnNode> tmpNdnNode = q.front();
+        cout << tmpNdnNode->nodeName << " ";
+		std::list<Ptr<NdnNode> > childrenList = tmpNdnNode->childrenList;
+		for(childrenListIter = childrenList.begin() ; childrenListIter != childrenList.end() ; childrenListIter++ ) {
+			q.push(*(childrenListIter));
+			//cout << "\t\t\t\t\t" << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")\n";
+			j++;
+		}
+		q.pop();
+    }
+}
+ 
+
+
+void AllNodesCall(AllCallFuncttion function, direction_t direction)
+{
+	NodeContainer nodeContainer = NodeContainer::GetGlobal();
+	int size = ndnNodeContainer.size();
+
+	switch (direction) {
+		case NDN_INCREASING_NODE_ID:
+		{
+			for (int i = 0; i < size; i++) {
+				function(nodeContainer.Get (i));
+			}
+			break;
+		}
+		case NDN_ROOT_TO_CHILDREN:
+		{
+			Ptr<NdnNode> rootNdnNode = GetNdnNodefromId(rootId);
+			std::list<Ptr<NdnNode> >::iterator childrenListIter;
+			Ptr<NdnNode> childNdnNode;
+			int curNodeId = 0;
+		
+			// Create an empty queue for level order tarversal
+			queue <Ptr<NdnNode> > q;
+		
+			// Enqueue Root and initialize height
+			q.push(rootNdnNode);
+		
+			while (q.empty() == false)
+			{
+				// Print front of queue and remove it from queue
+				Ptr<NdnNode> tmpNdnNode = q.front();
+				cout << tmpNdnNode->nodeName << " ";
+				curNodeId = tmpNdnNode->pNode;
+				function(nodeContainer.Get (curNodeId));
+				std::list<Ptr<NdnNode> > childrenList = tmpNdnNode->childrenList;
+				for(childrenListIter = childrenList.begin() ; childrenListIter != childrenList.end() ; childrenListIter++ ) {
+					q.push(*(childrenListIter));
+					//cout << "\t\t\t\t\t" << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")\n";
+				}
+				q.pop();
+			}
+			//for (int i = 0; i < size; i++) {
+			//	function(nodeContainer.Get (i));
+			//}
+			break;
+		}
+	}
+}
 
 int main (int argc, char *argv[])
 {
@@ -696,7 +941,7 @@ int main (int argc, char *argv[])
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
 
 	// create the node container
-	create_node_container();
+	CreateNodeContainer();
 
 	
 	fill_names();
@@ -739,8 +984,19 @@ int main (int argc, char *argv[])
 	add_fib_entries();
 	//ndn::GlobalRoutingHelper::CalculateRoutes ();
 	//print_identifiers();
-	SendHello(nodeContainer.Get (12));
-	RequestPrefixName(nodeContainer.Get (13));
+	GetRootId();
+	AllNodesCall(FindParent, NDN_INCREASING_NODE_ID);
+	AllNodesCall(FillChildrenList, NDN_INCREASING_NODE_ID);
+	PrintLevelOrder();
+	AllNodesCall(PrintNeighbours, NDN_INCREASING_NODE_ID);
+	AllNodesCall(PrintChildren, NDN_INCREASING_NODE_ID);
+	AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
+	
+	//SendHello(nodeContainer.Get (12));
+	//RequestPrefixName(nodeContainer.Get (3));
+	//RequestPrefixName(nodeContainer.Get (16));
+	//FillChildrenList(nodeContainer.Get (12));
+	//PrintChildren(nodeContainer.Get (12));
 	//InstallHelloApp(nodeContainer.Get (PROD));
 
 	Simulator::Stop (Seconds (10.0));
