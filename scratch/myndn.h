@@ -162,6 +162,7 @@ std::string prefixNamesArr[] = {
 #define CONS 7 //node h
 #define PROD 15 // node q
 #define DEST PROD
+#define INVALID_PARENT_ID 0xbadbabe
 
 void
 add_path(unsigned firstNode,unsigned SecndNode, int metric, const string str);
