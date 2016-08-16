@@ -33,7 +33,7 @@ using namespace ndn;
 ndn::Name initialPrefixName = Name("/initial");
 ndn::Name invalidPrefixName = Name("/invalid");
 ndn::Name rootPrefixName = Name("/0");
-int rootId = 1000; // Assign an invalid root id in the begining
+int rootId = 0; // Assign an invalid root id in the begining
 
 typedef ndn::ndnSIM::trie_with_policy< ndn::Name,
 					ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
@@ -45,8 +45,6 @@ typedef ndn::ndnSIM::trie_with_policy< Name,
                                     ndnSIM::counting_policy_traits > super;
 
 std::string interestPrefixstr = "/prefix";
-
-
 
 class NodeInfo {
 public:
@@ -77,8 +75,8 @@ public:
 	~NdnNode(void) {this->oneHopList.clear();};	
 
 	Ptr<Node> pNode;
-	std::list<Ptr<Node> > oneHopList; //List of one hop nbrs.
-	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
+	std::list<Ptr<Node> > oneHopNodeList; //List of one hop nbrs.
+	std::list<Ptr<NdnNode> > oneHopList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
 	std::list<Ptr<NdnNode> > childrenList; //List of one hop nbrs.
 	std::string nodeName;    // like hostname
 	//std::string prefixStr;
@@ -87,6 +85,8 @@ public:
 	twoNbrTrie *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
 	int parentId;
+	Ptr<NdnNode> anchorNode;
+	std::list<Ptr<NdnNode> > anchorChildrenList;
 	//ndn::AppHelper *pHelloApp; 
 	// like ip address
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
@@ -94,6 +94,7 @@ public:
 } ;
 
 std::vector<NdnNode> ndnNodeContainer;
+std::list<Ptr<NdnNode> > anchorList;
 
 class NdnPacket : public SimpleRefCount<NdnPacket>
 {
@@ -190,5 +191,15 @@ void FindParent(Ptr<Node> curNode);
 typedef void (*AllCallFuncttion)(Ptr<Node> curNode);
 
 void AllNodesCall(AllCallFuncttion function);
+
+int HashFunction(int curNodeId);
+
+void IdentifyAnchors();
+
+void PublishToAnchor(Ptr<Node> curNode);
+
+Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode);
+
+Ptr<NdnNode> GetNdnNodefromId(int ndnNodeId);
 
 #endif /* SCRATCH_MYNDN_H_ */
