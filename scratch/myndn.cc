@@ -590,6 +590,39 @@ void FindParent(Ptr<Node> curNode)
 		cout << " and I'm the root! \n"; 
 	}
 }
+
+// Iterative method to find height of Bianry Tree
+void PrintLevelOrder()
+{
+  	Ptr<NdnNode> rootNdnNode = GetNdnNodefromId(rootId);
+	std::list<Ptr<NdnNode> >::iterator childrenListIter;
+  	Ptr<NdnNode> childNdnNode;
+	int j = 0;
+
+	// Base Case
+    if (rootNdnNode == NULL)  return;
+ 
+    // Create an empty queue for level order tarversal
+    queue <Ptr<NdnNode> > q;
+ 
+    // Enqueue Root and initialize height
+    q.push(rootNdnNode);
+ 
+    while (q.empty() == false)
+    {
+		// Print front of queue and remove it from queue
+        Ptr<NdnNode> tmpNdnNode = q.front();
+        cout << tmpNdnNode->nodeName << " ";
+		std::list<Ptr<NdnNode> > childrenList = tmpNdnNode->childrenList;
+		for(childrenListIter = childrenList.begin() ; childrenListIter != childrenList.end() ; childrenListIter++ ) {
+			q.push(*(childrenListIter));
+			//cout << "\t\t\t\t\t" << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")\n";
+			j++;
+		}
+		q.pop();
+    }
+}
+
 */
 void CreateNodeContainer() {
 	std::vector<std::string>::const_iterator namesIter;
@@ -849,37 +882,6 @@ void GetRootId()
 		
 }
 
-// Iterative method to find height of Bianry Tree
-void PrintLevelOrder()
-{
-  	Ptr<NdnNode> rootNdnNode = GetNdnNodefromId(rootId);
-	std::list<Ptr<NdnNode> >::iterator childrenListIter;
-  	Ptr<NdnNode> childNdnNode;
-	int j = 0;
-
-	// Base Case
-    if (rootNdnNode == NULL)  return;
- 
-    // Create an empty queue for level order tarversal
-    queue <Ptr<NdnNode> > q;
- 
-    // Enqueue Root and initialize height
-    q.push(rootNdnNode);
- 
-    while (q.empty() == false)
-    {
-		// Print front of queue and remove it from queue
-        Ptr<NdnNode> tmpNdnNode = q.front();
-        cout << tmpNdnNode->nodeName << " ";
-		std::list<Ptr<NdnNode> > childrenList = tmpNdnNode->childrenList;
-		for(childrenListIter = childrenList.begin() ; childrenListIter != childrenList.end() ; childrenListIter++ ) {
-			q.push(*(childrenListIter));
-			//cout << "\t\t\t\t\t" << childNdnNode->nodeName << "(id:" << childNdnNode->ndnNodeId <<  ")\n";
-			j++;
-		}
-		q.pop();
-    }
-}
 
 
 void PrintNeighbours(Ptr<Node> curNode)
@@ -965,8 +967,56 @@ void PublishToAnchor(Ptr<Node> curNode)
 	anchorNdnNode->anchorChildrenList.push_back(curNdnNode);
 }
 
+void FillTwoHopTrie(Ptr<Node> curNode)
+{
+	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+	std::list<Ptr<NdnNode> > oneHopList;
+	std::list<Ptr<NdnNode> > twoHopList;
+	std::list<Ptr<NdnNode> >::const_iterator oneHopListIter;
+	std::list<Ptr<NdnNode> >::const_iterator twoHopListIter;
+	Ptr<NdnNode> oneHopNbr; 
+	Name curPrefix = curNdnNode->prefixName;
+	Name oneHopNbrPrefix;
+	Name twoHopNbrPrefix;
+	std::string oneHopNbrName;
+	std::string twoHopNbrName;
+
+
+	ndn::ndnSIM::trie_with_policy< ndn::Name,
+										ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
+										ndn::ndnSIM::counting_policy_traits > tmpTrie;
+
+	oneHopList = curNdnNode->oneHopList;
+
+	cout << "I am " << curNdnNode->nodeName << " : " << curPrefix.toUri() << "\n";	
+
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
+		oneHopNbr = (*oneHopListIter);
+		oneHopNbrName = (*oneHopListIter)->nodeName;
+		oneHopNbrPrefix = (*oneHopListIter)->prefixName;
+		cout << "\t" <<"1HopNbr " << oneHopNbrName << " : " << oneHopNbrPrefix.toUri() << "\n";
+		twoHopList = (*oneHopListIter)->oneHopList;
+
+		for (twoHopListIter = twoHopList.begin(); twoHopListIter != twoHopList.end(); twoHopListIter++) {
+			twoHopNbrPrefix = (*twoHopListIter)->prefixName;
+			twoHopNbrName = (*twoHopListIter)->nodeName;
+			// If two hop nbr is the source then continue
+			if(curPrefix == twoHopNbrPrefix) {
+				//cout << "\t\tThe two hop Nbr " << twoHopNbrStr << " and the source are the same \n";
+				continue;
+			}
+			
+			cout << "\t\t" << "2HopNbr " << twoHopNbrName << " : " << twoHopNbrPrefix.toUri() << "\n";
+			tmpTrie.insert((twoHopNbrPrefix), Create < ndn::detail::RegisteredPrefixEntry > (&twoHopNbrPrefix));
+			curNdnNode->nbrTrie = &tmpTrie;
+		}
+	}
+
+}
+
 /*
-void FindNextHop(Ptr<Node> curNode, Ptr<Node> dstNode) {
+
+void FindNextHop(Ptr<Node> curNode) {
 	std::list<NodeInfo * > oneHopNodeInfoList;
 	std::list<NodeInfo * > oneHopNodeInfoList1;
 	std::list<NodeInfo *>::const_iterator oneHopInfoListIter;
@@ -980,7 +1030,7 @@ void FindNextHop(Ptr<Node> curNode, Ptr<Node> dstNode) {
 	std::list<NodeInfo *>::const_iterator twoHopListIter1;
 	Ptr<Node> oneHopNbr;
 	Ptr<Node> twoHopNbr;
-	std::string prefixStr;
+	Name srcPrefix;
 	std::string sourceName;
 	std::string oneHopNbrName;
 	std::string oneHopNbrPrefix;
@@ -992,7 +1042,7 @@ void FindNextHop(Ptr<Node> curNode, Ptr<Node> dstNode) {
 	int i = 0;
 	std::vector<Ptr<ndn::Name> > tmpPrefix;
 	super::iterator item;
-	std::string destPrefix = dstNdnNode.prefixStr;
+	Name destPrefix = dstNdnNode.prefixName;
 	Ptr<ndn::Name> destPrefixName = dstNdnNode.prefixName;
 	Ptr<Node> nextHop;
 	int found = 0;
@@ -1004,31 +1054,29 @@ void FindNextHop(Ptr<Node> curNode, Ptr<Node> dstNode) {
 	found = 0;
 	sourceName = curNdnNode.nodeName;
 	srcPrefixName = curNdnNode.prefixName;
-	prefixStr = curNdnNode.prefixStr;
+	srcPrefix = curNdnNode.prefixName;
 	cout << "Sourcename " << sourceName << "\n";
 
 	oneHopNodeInfoList = curNdnNode.oneHopNodeInfoList;
 	// If source is the dest then break
-	if(prefixStr == destPrefix) {
+	if(srcPrefix == destPrefix) {
 		cout << "Current node " << sourceName << " is the dest \n";
 		found = 1;
 		nextHop = 0;
 		curNdnNode.nextHopNode = curNdnNode.node;
-		continue;
 	}
 
 	ndn::ndnSIM::trie_with_policy< ndn::Name,
 										ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
 										ndn::ndnSIM::counting_policy_traits > tmpTrie;
 
-	for(oneHopInfoListIter = oneHopNodeInfoList.begin() ; oneHopInfoListIter != oneHopNodeInfoList.end() ; oneHopInfoListIter++ ) {
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopInfoListIter++ ) {
 		oneHopNbr = (*oneHopInfoListIter)->node;
 		oneHopNbrName = (*oneHopInfoListIter)->nodeName;
-		oneHopNbrPrefix = (*oneHopInfoListIter)->prefixStr;
 		cout << "\t" <<"1HopNbr " << oneHopNbrName << "\n";
 		twoHopList = (*oneHopInfoListIter)->oneHopNodeInfoList;
 		// If one hop nbr is the dest then break
-		if(oneHopNbrPrefix == destPrefix) {
+		if(oneHopNbrName == destPrefix) {
 			cout << "Next hop is " << oneHopNbrName << " (which is also the dest) \n";
 			found = 1;
 			nextHop = oneHopNbr;
@@ -1037,10 +1085,9 @@ void FindNextHop(Ptr<Node> curNode, Ptr<Node> dstNode) {
 		}
 		for (twoHopListIter = twoHopList.begin(); twoHopListIter != twoHopList.end(); twoHopListIter++) {
 			twoHopNbrName = (*twoHopListIter)->prefixName;
-			twoHopNbrPreStr = (*twoHopListIter)->prefixStr;
 			twoHopNbrStr = (*twoHopListIter)->nodeName;
 			// If two hop nbr is the source then continue
-			if(prefixStr == twoHopNbrPreStr) {
+			if(srcPrefix == twoHopNbrName) {
 				//cout << "\t\tThe two hop Nbr " << twoHopNbrStr << " and the source are the same \n";
 				continue;
 			}
@@ -1080,7 +1127,6 @@ void FindNextHop(Ptr<Node> curNode, Ptr<Node> dstNode) {
 	cout << "\n-------------------------------------------------\n";
 }
 */
-
 
 int main (int argc, char *argv[])
 {
@@ -1150,7 +1196,8 @@ int main (int argc, char *argv[])
 	AllNodesCall(FillChildrenList, NDN_ROOT_TO_CHILDREN);
 	AllNodesCall(PrintChildren, NDN_ROOT_TO_CHILDREN);
 	AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
-
+	AllNodesCall(FillTwoHopTrie, NDN_INCREASING_NODE_ID);
+	
 	IdentifyAnchors();
 	AllNodesCall(PublishToAnchor, NDN_ROOT_TO_CHILDREN);
 	//AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
