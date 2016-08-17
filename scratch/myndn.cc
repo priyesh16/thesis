@@ -632,9 +632,9 @@ void CreateNodeContainer() {
 	std::list<TopologyReader::Link>::iterator linkiter;
 	std::string fromName = "";
 	std::string toName = "";
-	int pos;
-	int topoId;
-	int size = nodeContainer.GetN();
+	unsigned int pos;
+	unsigned int topoId;
+	unsigned int size = nodeContainer.GetN();
 	ndnNodeContainer.resize(size);
 	ndn::Name initialPrefixName = Name("/initial");
 
@@ -649,6 +649,7 @@ void CreateNodeContainer() {
 		topoId = from->GetId();
 		pos = ndnNodeIdTable[topoId];
 		ndnNodeContainer[pos].pNode = from;
+		ndnNodeContainer[pos].nodeId = topoId;
 		ndnNodeContainer[pos].nodeName = fromName;
 		ndnNodeContainer[pos].oneHopNodeList.push_back(to);
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
@@ -662,7 +663,8 @@ void CreateNodeContainer() {
 		//std::cout << "Pri : " << toName << "\t\t -> " << fromName << " : " << from->GetId() << " " << pos << "\n";
 		topoId = to->GetId();
 		pos = ndnNodeIdTable[topoId];
-		ndnNodeContainer[pos].pNode = to;
+		ndnNodeContainer[pos].pNode = to;		
+		ndnNodeContainer[pos].nodeId = topoId;
 		ndnNodeContainer[pos].nodeName = toName;
 		ndnNodeContainer[pos].oneHopNodeList.push_back(from);
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
@@ -714,8 +716,8 @@ Ptr<Face> GetFace(unsigned firstNodeId, unsigned secondNodeId)
 
 Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode)
 {
-	int pos;
-	int topoId;
+	unsigned int pos;
+	unsigned int topoId;
   
 	topoId = curNode->GetId();
 	pos = ndnNodeIdTable[topoId];
@@ -723,11 +725,11 @@ Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode)
 	return &ndnNodeContainer[pos];
 }
 
-Ptr<NdnNode> GetNdnNodefromId(int ndnNodeId)
+Ptr<NdnNode> GetNdnNodefromId(unsigned int ndnNodeId)
 {
 
-	int i; 
-	int flag = 0;
+	unsigned int i; 
+	unsigned int flag = 0;
 
 	for (i = 0; i < NODE_CNT; i++) {
 		if (ndnNodeContainer[i].ndnNodeId == ndnNodeId) {
@@ -744,12 +746,12 @@ Ptr<NdnNode> GetNdnNodefromId(int ndnNodeId)
 }
 
 
-int GetChildId(Ptr<NdnNode> parentNdnNode, Ptr<NdnNode> curChildNdnNode)
+unsigned int GetChildId(Ptr<NdnNode> parentNdnNode, Ptr<NdnNode> curChildNdnNode)
 {
 	std::list<Ptr<NdnNode> >::iterator childrenListIter;
 	Ptr<NdnNode> childNdnNode;
 	Ptr<Face> pFace;
-	int childId = 0;
+	unsigned int childId = 0;
 	
 	std::list<Ptr<NdnNode> > childrenList = parentNdnNode->childrenList;
 
@@ -764,7 +766,7 @@ int GetChildId(Ptr<NdnNode> parentNdnNode, Ptr<NdnNode> curChildNdnNode)
 }
 
 
-void NotifyNameChange(int curId, Name preName, Name postName)
+void NotifyNameChange(unsigned int curId, Name preName, Name postName)
 {
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromId(curId);
 	string curName = curNdnNode->nodeName;
@@ -774,7 +776,7 @@ void NotifyNameChange(int curId, Name preName, Name postName)
 	cout << " to " << postName.toUri() << "\n";
 }
 
-void NotifyParentChange(int curId, int preId, int postId)
+void NotifyParentChange(unsigned int curId, unsigned int preId, int postId)
 {
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromId(curId);
 	Ptr<NdnNode> preNdnNode = GetNdnNodefromId(preId);
@@ -793,7 +795,7 @@ void AssignPrefixName(Ptr<Node> curNode)
 {
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
 	Ptr<NdnNode> childNdnNode; 
-	int childId;
+	unsigned int childId;
 	string strChildId; 
 	ndn::Name preName;
 	std::list<Ptr<NdnNode> >::iterator childrenListIter;
@@ -861,8 +863,8 @@ void GetRootId()
 	Ptr<NdnNode> curNdnNode;
 	Ptr<Node> curNode;
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
-	int size = ndnNodeContainer.size();
-	for (int i = 0; i < size; i++) {
+	unsigned int size = ndnNodeContainer.size();
+	for (unsigned int i = 0; i < size; i++) {
 		curNode = nodeContainer.Get (i); 
 		curNdnNode = GetNdnNodefromNode(curNode);
 		if (rootId > curNdnNode->ndnNodeId) {
@@ -913,13 +915,13 @@ void PrintNeighbours(Ptr<Node> curNode)
 void AllNodesCall(AllCallFuncttion function, direction_t direction)
 {
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
-	int size = ndnNodeContainer.size();
+	unsigned int size = ndnNodeContainer.size();
 	Ptr<NdnNode> rootNdnNode; 
 	std::list<Ptr<NdnNode> >::iterator childrenListIter;
 	Ptr<NdnNode> childNdnNode;
-	int curNodeId = 0;
+	unsigned int curNodeId = 0;
 	queue <Ptr<NdnNode> > q;
-	int i;
+	unsigned int i;
 
 	switch (direction) {
 		case NDN_INCREASING_NODE_ID:
@@ -949,7 +951,7 @@ void AllNodesCall(AllCallFuncttion function, direction_t direction)
 	}
 }
 
-int HashFunction(int curNodeId) 
+unsigned int HashFunction(unsigned int curNodeId) 
 {
 	return curNodeId % 4;
 }
@@ -965,13 +967,63 @@ void IdentifyAnchors()
 void PublishToAnchor(Ptr<Node> curNode)
 {
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
-  	int curNodeId = curNdnNode->ndnNodeId;
-  	int anchorId;
+  	unsigned int curNodeId = curNdnNode->ndnNodeId;
+  	unsigned int anchorId;
   	Ptr<NdnNode> anchorNdnNode;
 
 	anchorId = HashFunction(curNodeId);
 	anchorNdnNode = GetNdnNodefromId(anchorId);
 	anchorNdnNode->anchorChildrenList.push_back(curNdnNode);
+}
+
+unsigned int GetNdnIdfromNodeId(unsigned int nodeId) 
+{
+	unsigned int i; 
+	unsigned int flag = 0;
+
+	for (i = 0; i < NODE_CNT; i++) {
+		if (ndnNodeContainer[i].nodeId == nodeId) {
+			flag = 1;
+			break;
+		}
+	}
+	
+	if (flag == 0){
+		cout << "Couldn't find id " << nodeId << "\n";
+		return -1;
+	}
+	return ndnNodeContainer[i].ndnNodeId;
+}
+
+Ptr<NdnNode> SubscribeToAnchor(Ptr<Node> curNode)
+{
+	unsigned int ndnNodeId = GetNdnIdfromNodeId(curNode->GetId());
+  	Ptr<NdnNode> anchorNdnNode;
+  	Ptr<NdnNode> curNdnNode;
+  	int found = 0;
+  	unsigned int anchorId;
+	std::list<Ptr<NdnNode> >::iterator anchorListIter;
+
+	anchorId = HashFunction(ndnNodeId);
+	anchorNdnNode = GetNdnNodefromId(anchorId);
+	
+	std::list<Ptr<NdnNode> > anchorList = anchorNdnNode->anchorChildrenList;
+
+	for(anchorListIter = anchorList.begin() ; anchorListIter != anchorList.end() ; anchorListIter++ ) {
+		curNdnNode = *(anchorListIter);
+		
+		// If neighbour already has a parent then it is not a child
+		if (curNdnNode->nodeId == curNode->GetId()) {
+				found = 1;
+				break;
+		}
+	}
+
+	if (found == 0) {
+		cout << "Couldn't find ndn node with node id " << curNode->GetId() << "\n";
+		return 0;
+	}
+	return curNdnNode;
 }
 
 void FillTwoHopTrie(Ptr<Node> curNode)
@@ -1036,6 +1088,7 @@ void FindNextHop(Ptr<Node> curNode) {
 	Ptr<Node> oneHopNbr;
 	Ptr<Node> twoHopNbr;
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+	NodeContainer nodeContainer = NodeContainer::GetGlobal();
 	std::string prefixStr;
 	std::string sourceName;
 	std::string oneHopNbrName;
@@ -1047,14 +1100,14 @@ void FindNextHop(Ptr<Node> curNode) {
 	std::vector<std::string>::const_iterator namesIter;
 	std::vector<Ptr<ndn::Name> > tmpPrefix;
 	super::iterator item;
+	Ptr<NdnNode> dstNdnNode = SubscribeToAnchor(nodeContainer.Get(DEST));
 	std::string destPrefix = dstNdnNode->prefixName.toUri();
 	Ptr<ndn::Name> destPrefixName = &(dstNdnNode->prefixName);
 	Ptr<Node> nextHop;
-	int found = 0;
+	unsigned int found = 0;
 	Ptr<ndn::Name> srcPrefixName;
 	cout << "\n-------------------------------------------------\n";
 
-	found = 0;
 	//curNdnNode = &ndnNodeContainer[i];
 	sourceName = curNdnNode->nodeName;
 	srcPrefixName = &(curNdnNode->prefixName);
@@ -1240,13 +1293,13 @@ int main (int argc, char *argv[])
 	AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
 	AllNodesCall(FillTwoHopTrie, NDN_INCREASING_NODE_ID);
 
-	dstNdnNode = GetNdnNodefromId(DEST);
-	AllNodesCall(FindNextHop, NDN_INCREASING_NODE_ID);
-	AllNodesCall(AddFibEntries, NDN_INCREASING_NODE_ID);
-
-	
 	IdentifyAnchors();
 	AllNodesCall(PublishToAnchor, NDN_ROOT_TO_CHILDREN);
+	//dstNdnNode = GetNdnNodefromId(DEST);
+	AllNodesCall(FindNextHop, NDN_INCREASING_NODE_ID);
+	AllNodesCall(AddFibEntries, NDN_INCREASING_NODE_ID);
+	
+
 	//AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
 	
 	//SendHello(nodeContainer.Get (12));

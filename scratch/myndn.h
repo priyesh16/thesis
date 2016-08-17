@@ -33,8 +33,7 @@ using namespace ndn;
 ndn::Name initialPrefixName = Name("/initial");
 ndn::Name invalidPrefixName = Name("/invalid");
 ndn::Name rootPrefixName = Name("/0");
-int rootId = 1000;// Assign an invalid root id in the begining
-
+unsigned int rootId = 1000;// Assign an invalid root id in the begining
 
 ndn::ndnSIM::trie_with_policy< ndn::Name,
 									ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
@@ -81,18 +80,19 @@ public:
 	~NdnNode(void) {this->oneHopList.clear();};	
 
 	Ptr<Node> pNode;
+	unsigned int nodeId;
 	std::list<Ptr<Node> > oneHopNodeList; //List of one hop nbrs.
 	std::list<Ptr<NdnNode> > oneHopList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
+	
 	std::list<Ptr<NdnNode> > childrenList; //List of one hop nbrs.
 	std::string nodeName;    // like hostname
-	//std::string prefixStr;
-	int ndnNodeId;
+	unsigned int ndnNodeId;
 	ndn::Name prefixName;
 	ndn::ndnSIM::trie_with_policy< ndn::Name,
 										ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
 										ndn::ndnSIM::counting_policy_traits > *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
-	int parentId;
+	unsigned int parentId;
 	Ptr<NdnNode> anchorNode;
 	std::list<Ptr<NdnNode> > anchorChildrenList;
 	//ndn::AppHelper *pHelloApp; 
@@ -103,7 +103,7 @@ public:
 
 std::vector<NdnNode> ndnNodeContainer;
 std::list<Ptr<NdnNode> > anchorList;
-Ptr<NdnNode> dstNdnNode;
+//Ptr<NdnNode> dstNdnNode;
 
 class NdnPacket : public SimpleRefCount<NdnPacket>
 {
@@ -185,9 +185,9 @@ void FindParentThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket);
 
 void AssignPrefixNameThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket);
 
-void NotifyParentChange(int curId, int preId, int postId);
+void NotifyParentChange(unsigned int curId, unsigned int preId, unsigned int postId);
 
-void NotifyNameChange(int curId, Name preName, Name postName);
+void NotifyNameChange(unsigned int curId, Name preName, Name postName);
 
 Ptr<NdnNode> GetNdnNode(Ptr<Node> curNode);
 
@@ -201,14 +201,16 @@ typedef void (*AllCallFuncttion)(Ptr<Node> curNode);
 
 void AllNodesCall(AllCallFuncttion function);
 
-int HashFunction(int curNodeId);
+unsigned int HashFunction(unsigned int curNodeId);
 
 void IdentifyAnchors();
 
 void PublishToAnchor(Ptr<Node> curNode);
 
+Ptr<NdnNode> SubscribeToAnchor(Ptr<Node> curNode);
+
 Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode);
 
-Ptr<NdnNode> GetNdnNodefromId(int ndnNodeId);
+Ptr<NdnNode> GetNdnNodefromId(unsigned int ndnNodeId);
 
 #endif /* SCRATCH_MYNDN_H_ */
