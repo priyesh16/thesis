@@ -50,7 +50,7 @@ typedef ndn::ndnSIM::trie_with_policy< Name,
                                     ndnSIM::counting_policy_traits > super;
 
 std::string interestPrefixstr = "/prefix";
-
+/*
 class NodeInfo {
 public:
 	Ptr<Node> node;
@@ -67,6 +67,7 @@ public:
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
 // note the twoHopNbr could be the source node also..so always check for that
 } ;
+*/
 
 typedef enum packetType_s {
 	GET_PARENT,
@@ -147,6 +148,8 @@ int ndnNodeIdTable[] = {
 		17 		//s 17
 };
 
+/*
+
 std::string prefixNamesArr[] = {
 		"/0/2/1",		//a
 		"/0/1/1/1", 	//b
@@ -167,6 +170,7 @@ std::string prefixNamesArr[] = {
 		"/0/2/1/1/2/1",	//r
 		"/0/3/1/2/1" // s
 };
+*/
 
 #define NODE_CNT 18
 #define CONS 7 //node h

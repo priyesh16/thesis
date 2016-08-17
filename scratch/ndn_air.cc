@@ -19,7 +19,7 @@
  */
 // ndn-simple.cc
 
-#include "myndn.h"
+#include "ndn_air.h"
 
 
 /**
@@ -50,7 +50,7 @@ Ptr<Node> to;
 
 std::vector<std::string> names;
 ns3::AnnotatedTopologyReader topologyReader("", 1);
-std::vector<NodeInfo> nbrTable(NODE_CNT);
+//std::vector<NodeInfo> nbrTable(NODE_CNT);
 
 
 //NodeContainer nodeContainer;
@@ -61,7 +61,7 @@ ndn::ndnSIM::trie_with_policy< ndn::Name,
 
 std::vector<Ptr<ndn::Name> > prefix;
 
-
+/*
 
 void print_nbr_table() {
 	std::list<NodeInfo * > oneHopNodeInfoList;
@@ -364,7 +364,7 @@ void add_path(unsigned firstNode,unsigned SecndNode, int metric, string str){
 	}
 }
 
-/*
+
 void InstallHelloApp()
 {
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
@@ -1242,9 +1242,9 @@ int main (int argc, char *argv[])
 
 	
 	
-	fill_names();
-	fill_nbr_table();
-	add_node_identifiers();
+	//fill_names();
+	//fill_nbr_table();
+	//add_node_identifiers();
 	
 
 	// Install NDN stack on all nodes
