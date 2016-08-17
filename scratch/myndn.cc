@@ -1134,6 +1134,40 @@ void FindNextHop(Ptr<Node> curNode) {
 	cout << "\n-------------------------------------------------\n\n\n";
 }
 
+void AddPath(unsigned firstNode,unsigned SecndNode, int metric, string str){
+	Ptr<Node> node1=NodeList::GetNode(firstNode);
+	Ptr<Fib>  fib  = node1->GetObject<Fib> ();
+	unsigned m, k;
+	for(m=0; m<node1->GetNDevices(); m++){
+		Ptr<Channel> ch=node1->GetDevice(m)->GetChannel();
+		for(k=0; k<ch->GetNDevices(); k++){
+			if(ch->GetDevice(k)->GetNode()->GetId()==SecndNode){
+				//Ptr<Ipv4> stack = node->GetObject<Ipv4> ();
+				Ptr<ndn::L3Protocol> l3 = node1->GetObject<ndn::L3Protocol> ();
+		       // str="prefix1";
+				Ptr<Name> name = Create<Name>(str);
+				//Sname->append(str);
+				const Ptr<const Name> &prefix=name;
+				Ptr<fib::Entry> entry = fib->Add (prefix, l3->GetFace(m), metric );
+			}
+		}
+	}
+}
+
+
+void AddFibEntries (Ptr<Node> curNode) {
+	Ptr<Node> srcNode;
+	Ptr<Node> nextHopNode;
+	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
+
+	Ptr<ndn::GlobalRouter> source;
+
+	srcNode = curNode;
+	nextHopNode = curNdnNode->nextHopNode;
+	AddPath(srcNode->GetId(), nextHopNode->GetId(), 1, interestPrefixstr);
+}
+
+
 
 int main (int argc, char *argv[])
 {
@@ -1186,13 +1220,14 @@ int main (int argc, char *argv[])
 	producerHelper.SetAttribute ("PayloadSize", StringValue("1024"));
 	producerHelper.Install (producer);
 
-	fill_next_hops();
+	//fill_next_hops();
 
 	// Add /prefix origins to ndn::GlobalRouter
 	ndnGlobalRoutingHelper.AddOrigins (interestPrefixstr, producer);
 
 	// Calculate and install FIBs
-	add_fib_entries();
+	//add_fib_entries();
+	
 	//ndn::GlobalRoutingHelper::CalculateRoutes ();
 	//print_identifiers();
 	// create the node container
@@ -1207,6 +1242,7 @@ int main (int argc, char *argv[])
 
 	dstNdnNode = GetNdnNodefromId(DEST);
 	AllNodesCall(FindNextHop, NDN_INCREASING_NODE_ID);
+	AllNodesCall(AddFibEntries, NDN_INCREASING_NODE_ID);
 
 	
 	IdentifyAnchors();
