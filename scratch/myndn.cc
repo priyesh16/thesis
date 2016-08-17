@@ -654,6 +654,9 @@ void CreateNodeContainer() {
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
 		ndnNodeContainer[pos].parentId = INVALID_PARENT_ID;
 		ndnNodeContainer[pos].prefixName = initialPrefixName;
+		ndnNodeContainer[pos].nbrTrie = new ndn::ndnSIM::trie_with_policy< ndn::Name,
+										ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
+										ndn::ndnSIM::counting_policy_traits > (1);
 		//ndnNodeContainer[pos].pHelloApp = NULL;
 
 		//std::cout << "Pri : " << toName << "\t\t -> " << fromName << " : " << from->GetId() << " " << pos << "\n";
@@ -665,6 +668,9 @@ void CreateNodeContainer() {
 		ndnNodeContainer[pos].ndnNodeId = ndnNodeIdTable[topoId];
 		ndnNodeContainer[pos].parentId = INVALID_PARENT_ID;
 		ndnNodeContainer[pos].prefixName = initialPrefixName;
+		ndnNodeContainer[pos].nbrTrie = new ndn::ndnSIM::trie_with_policy< ndn::Name,
+										ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
+										ndn::ndnSIM::counting_policy_traits > (1);
 		//ndnNodeContainer[pos].pHelloApp = NULL;
 	}
 }
@@ -1007,126 +1013,136 @@ void FillTwoHopTrie(Ptr<Node> curNode)
 			}
 			
 			cout << "\t\t" << "2HopNbr " << twoHopNbrName << " : " << twoHopNbrPrefix.toUri() << "\n";
-			tmpTrie.insert((twoHopNbrPrefix), Create < ndn::detail::RegisteredPrefixEntry > (&twoHopNbrPrefix));
-			curNdnNode->nbrTrie = &tmpTrie;
+			(*(curNdnNode->nbrTrie)).insert((twoHopNbrPrefix), Create < ndn::detail::RegisteredPrefixEntry > (&twoHopNbrPrefix));
+			//*(curNdnNode->nbrTrie) = tmpTrie;
+			//std::cout << tmpTrie.getTrie ();
 		}
 	}
 
 }
 
-/*
+
+
+
+
+Ptr<NdnNode> GetNdnNodefromPrefix(ndn::Name curPrefix)
+{
+	int i; 
+	int flag = 0;
+
+	for (i = 0; i < NODE_CNT; i++) {
+		if (ndnNodeContainer[i].prefixName == curPrefix) {
+			flag = 1;
+			break;
+		}
+	}
+	
+	if (flag == 0) {
+		cout << "Couldn't find prefix " << curPrefix.toUri() << "\n";
+	}
+	return &(ndnNodeContainer[i]);
+
+}
 
 void FindNextHop(Ptr<Node> curNode) {
-	std::list<NodeInfo * > oneHopNodeInfoList;
-	std::list<NodeInfo * > oneHopNodeInfoList1;
-	std::list<NodeInfo *>::const_iterator oneHopInfoListIter;
-	std::list<NodeInfo *>::const_iterator oneHopInfoListIter1;
-	std::list<Ptr<Node> > oneHopList;
-	std::list<NodeInfo *>::reverse_iterator reviter;
-	std::list<Ptr<Node> >::const_iterator oneHopListIter;
-	std::list<NodeInfo *> twoHopList;
-	std::list<NodeInfo *> twoHopList1;
-	std::list<NodeInfo *>::const_iterator twoHopListIter;
-	std::list<NodeInfo *>::const_iterator twoHopListIter1;
+	std::list<Ptr<NdnNode> > oneHopList;
+	std::list<Ptr<NdnNode> >::const_iterator oneHopListIter;
+	std::list<Ptr<NdnNode> > twoHopList;
+	std::list<Ptr<NdnNode> >::const_iterator twoHopListIter;
+
 	Ptr<Node> oneHopNbr;
 	Ptr<Node> twoHopNbr;
-	Name srcPrefix;
 	std::string sourceName;
 	std::string oneHopNbrName;
-	std::string oneHopNbrPrefix;
+	Name oneHopNbrPrefix;
 	std::string twoHopNbrStr;
 	std::string twoHopNbrPreStr;
 	ndn::Name foundPrefStr;
 	Ptr<ndn::Name> twoHopNbrName;
 	std::vector<std::string>::const_iterator namesIter;
-	int i = 0;
 	std::vector<Ptr<ndn::Name> > tmpPrefix;
 	super::iterator item;
-	Name destPrefix = dstNdnNode.prefixName;
-	Ptr<ndn::Name> destPrefixName = dstNdnNode.prefixName;
+	Name destPrefix = dstNdnNode->prefixName;
 	Ptr<Node> nextHop;
+	Ptr<NdnNode> nextHopNode;
 	int found = 0;
-	Ptr<ndn::Name> srcPrefixName;
-	cout<< "Destination Prefix is" << destPrefix << endl;
+	ndn::Name srcPrefix;
+
+	cout<< "Destination Prefix is" << destPrefix.toUri() << endl;
 	cout << "\n-------------------------------------------------\n";
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
 
 	found = 0;
-	sourceName = curNdnNode.nodeName;
-	srcPrefixName = curNdnNode.prefixName;
-	srcPrefix = curNdnNode.prefixName;
+	sourceName = curNdnNode->nodeName;
+	srcPrefix = curNdnNode->prefixName;
 	cout << "Sourcename " << sourceName << "\n";
 
-	oneHopNodeInfoList = curNdnNode.oneHopNodeInfoList;
+	oneHopList = curNdnNode->oneHopList;
 	// If source is the dest then break
 	if(srcPrefix == destPrefix) {
 		cout << "Current node " << sourceName << " is the dest \n";
 		found = 1;
 		nextHop = 0;
-		curNdnNode.nextHopNode = curNdnNode.node;
+		curNdnNode->nextHopNode = curNdnNode->pNode;
 	}
+
 
 	ndn::ndnSIM::trie_with_policy< ndn::Name,
 										ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
 										ndn::ndnSIM::counting_policy_traits > tmpTrie;
+										
 
-	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopInfoListIter++ ) {
-		oneHopNbr = (*oneHopInfoListIter)->node;
-		oneHopNbrName = (*oneHopInfoListIter)->nodeName;
-		cout << "\t" <<"1HopNbr " << oneHopNbrName << "\n";
-		twoHopList = (*oneHopInfoListIter)->oneHopNodeInfoList;
+	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++) {
+		oneHopNbrPrefix = (*oneHopListIter)->prefixName;
+		oneHopNbrName = (*oneHopListIter)->nodeName;
+		//cout << "\t" <<"1HopNbr " << oneHopNbrName << "\n";
+
 		// If one hop nbr is the dest then break
-		if(oneHopNbrName == destPrefix) {
+		if(oneHopNbrPrefix == destPrefix) {
 			cout << "Next hop is " << oneHopNbrName << " (which is also the dest) \n";
 			found = 1;
 			nextHop = oneHopNbr;
-			curNdnNode.nextHopNode = oneHopNbr;
+			curNdnNode->nextHopNode = oneHopNbr;
 			break;
 		}
-		for (twoHopListIter = twoHopList.begin(); twoHopListIter != twoHopList.end(); twoHopListIter++) {
-			twoHopNbrName = (*twoHopListIter)->prefixName;
-			twoHopNbrStr = (*twoHopListIter)->nodeName;
-			// If two hop nbr is the source then continue
-			if(srcPrefix == twoHopNbrName) {
-				//cout << "\t\tThe two hop Nbr " << twoHopNbrStr << " and the source are the same \n";
-				continue;
-			}
-			cout << "\t\t" << "2HopNbr " << twoHopNbrStr << " : " << twoHopNbrPreStr << "\n";
-			tmpTrie.insert((*twoHopNbrName), Create < ndn::detail::RegisteredPrefixEntry > (twoHopNbrName));
-			curNdnNode.nbrTrie = &tmpTrie;
-		}
 	}
-	if (found != 1) {
-		item = (tmpTrie).longest_prefix_match(*(destPrefixName));
+		//tmpTrie = *(curNdnNode->nbrTrie);
+	if (found != 1) {	
+		item = (*(curNdnNode->nbrTrie)).longest_prefix_match(destPrefix);
 		// If no prefix match with destination then parent node is the nbr
+		
 		if (item == 0) {
 			//cout << "The original prefix" << srcPrefixName <<"\t" << i;
 			//print_name(*srcPrefixName);
-			item = (tmpTrie).longest_prefix_match(*srcPrefixName);
+			item = (*(curNdnNode->nbrTrie)).longest_prefix_match(srcPrefix);
 		}
+		//std::cout << *(curNdnNode->nbrTrie)->getTrie ();
 		// if item is still 0 then ideally assert
-		//if (item != 0) {
-			foundPrefStr = *((item->payload ())->GetPrefix());
-			cout << "Longest Prefix found is" << foundPrefStr << endl;
-			oneHopNodeInfoList1 = curNdnNode.oneHopNodeInfoList;
-			for(oneHopInfoListIter1 = oneHopNodeInfoList1.begin() ; oneHopInfoListIter1 != oneHopNodeInfoList1.end() ; oneHopInfoListIter1++ ) {
-				twoHopList1 = (*oneHopInfoListIter1)->oneHopNodeInfoList;
-				for (twoHopListIter1 = twoHopList1.begin(); twoHopListIter1 != twoHopList1.end(); twoHopListIter1++) {
-					if ((*twoHopListIter1)->prefixName->compare(foundPrefStr) == 0) {
-							cout << "Next hop is " << (*oneHopInfoListIter1)->nodeName << endl;
-							curNdnNode.nextHopNode = (*oneHopInfoListIter1)->node;
-							found = 1;
-							break;
-					}
-				}
-				if (found == 1)
+		if (item != 0) {
+			cout << "here \n";
+			foundPrefStr = *(item->payload ()->GetPrefix());
+			cout << "Longest Prefix found is \n" << foundPrefStr << endl;
+			nextHopNode = GetNdnNodefromPrefix(foundPrefStr);
+			curNdnNode->nextHopNode = nextHopNode->pNode;
+			cout << "Next hop is " << nextHopNode->nodeName << endl;
+			/*
+			twoHopList = (*oneHopListIter)->oneHopList;
+			for (twoHopListIter = twoHopList.begin(); twoHopListIter != twoHopList.end(); twoHopListIter++) {
+				if ((*twoHopListIter)->prefixName.compare(foundPrefStr) == 0) {
+					cout << "Next hop is " << (*oneHopListIter)->nodeName << endl;
+					curNdnNode->nextHopNode = (*oneHopListIter)->pNode;
+					found = 1;
 					break;
+				}
 			}
-		//}
+			*/
+		}
 	}
-	cout << "\n-------------------------------------------------\n";
+
+
+	cout << "\n-------------------------------------------------\n" << found;
 }
-*/
+
 
 int main (int argc, char *argv[])
 {
@@ -1197,6 +1213,10 @@ int main (int argc, char *argv[])
 	AllNodesCall(PrintChildren, NDN_ROOT_TO_CHILDREN);
 	AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
 	AllNodesCall(FillTwoHopTrie, NDN_INCREASING_NODE_ID);
+
+	dstNdnNode = GetNdnNodefromId(DEST);
+	AllNodesCall(FindNextHop, NDN_INCREASING_NODE_ID);
+
 	
 	IdentifyAnchors();
 	AllNodesCall(PublishToAnchor, NDN_ROOT_TO_CHILDREN);

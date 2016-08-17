@@ -33,7 +33,13 @@ using namespace ndn;
 ndn::Name initialPrefixName = Name("/initial");
 ndn::Name invalidPrefixName = Name("/invalid");
 ndn::Name rootPrefixName = Name("/0");
-int rootId = 0; // Assign an invalid root id in the begining
+int rootId = 1000;// Assign an invalid root id in the begining
+
+
+ndn::ndnSIM::trie_with_policy< ndn::Name,
+									ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
+									ndn::ndnSIM::counting_policy_traits > namesTrie;
+
 
 typedef ndn::ndnSIM::trie_with_policy< ndn::Name,
 					ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
@@ -82,7 +88,9 @@ public:
 	//std::string prefixStr;
 	int ndnNodeId;
 	ndn::Name prefixName;
-	twoNbrTrie *nbrTrie;
+	ndn::ndnSIM::trie_with_policy< ndn::Name,
+										ndn::ndnSIM::smart_pointer_payload_traits<ndn::detail::RegisteredPrefixEntry>,
+										ndn::ndnSIM::counting_policy_traits > *nbrTrie;
 	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
 	int parentId;
 	Ptr<NdnNode> anchorNode;
@@ -95,6 +103,7 @@ public:
 
 std::vector<NdnNode> ndnNodeContainer;
 std::list<Ptr<NdnNode> > anchorList;
+Ptr<NdnNode> dstNdnNode;
 
 class NdnPacket : public SimpleRefCount<NdnPacket>
 {
