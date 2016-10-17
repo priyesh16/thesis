@@ -13,16 +13,19 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/ndnSIM-module.h"
-#include "../src/ndnSIM/utils/trie/trie.h"
-#include "../src/ndnSIM/utils/trie/trie-with-policy.h"
-#include "../src/ndnSIM/utils/trie/counting-policy.h"
-#include "../src/ndnSIM/ndn.cxx/detail/pending-interests-container.h"
-#include "../src/ndnSIM/ndn.cxx/detail/registered-prefix-container.h"
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/point-to-point-layout-module.h"
 #include "ns3/ndnSIM-module.h"
+#include "ns3/flow-monitor.h"
+#include "ns3/flow-monitor-helper.h"
+
+#include "../src/ndnSIM/utils/trie/trie.h"
+#include "../src/ndnSIM/utils/trie/trie-with-policy.h"
+#include "../src/ndnSIM/utils/trie/counting-policy.h"
+#include "../src/ndnSIM/ndn.cxx/detail/pending-interests-container.h"
+#include "../src/ndnSIM/ndn.cxx/detail/registered-prefix-container.h"
 #include "../src/ndnSIM/helper/ndn-global-routing-helper.h"
 #include "../src/ndnSIM/model/ndn-net-device-face.h"
 #include "../src/ndnSIM/model/ndn-global-router.h"
@@ -77,14 +80,14 @@ typedef enum packetType_s {
 class NdnNode : public SimpleRefCount<NdnNode>
 {
 public:
-	NdnNode(void){};	
-	~NdnNode(void) {this->oneHopList.clear();};	
+	NdnNode(void){};
+	~NdnNode(void) {this->oneHopList.clear();};
 
 	Ptr<Node> pNode;
 	unsigned int nodeId;
 	std::list<Ptr<Node> > oneHopNodeList; //List of one hop nbrs.
 	std::list<Ptr<NdnNode> > oneHopList; // List of Nodeinfos of one hop nbrs, basically 2hop nbrs
-	
+
 	std::list<Ptr<NdnNode> > childrenList; //List of one hop nbrs.
 	std::string nodeName;    // like hostname
 	unsigned int ndnNodeId;
@@ -96,7 +99,7 @@ public:
 	unsigned int parentId;
 	Ptr<NdnNode> anchorNode;
 	std::list<Ptr<NdnNode> > anchorChildrenList;
-	//ndn::AppHelper *pHelloApp; 
+	//ndn::AppHelper *pHelloApp;
 	// like ip address
 // (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
 // note the twoHopNbr could be the source node also..so always check for that
@@ -106,7 +109,7 @@ std::vector<NdnNode> ndnNodeContainer;
 std::list<Ptr<NdnNode> > anchorList;
 //Ptr<NdnNode> dstNdnNode;
 
-class NdnPacket : public SimpleRefCount<NdnPacket>
+/*class NdnPacket : public SimpleRefCount<NdnPacket>
 {
 public:
 	packetType_t packetType;
@@ -114,7 +117,7 @@ public:
 	int receiverId;
 	int parentId; //Node identifier which the sender thinks is the root
 };
-
+*/
 typedef enum err_s
 {
 	NDN_OK,
@@ -126,6 +129,13 @@ typedef enum direction_s
 	NDN_INCREASING_NODE_ID,
 	NDN_ROOT_TO_CHILDREN,
 }direction_t;
+
+typedef enum routetype_s
+{
+	DIJKSTRA,
+	AIR,
+}routetype_t;
+
 
 int ndnNodeIdTable[] = {
 		7,		//a 0
@@ -173,8 +183,8 @@ std::string prefixNamesArr[] = {
 */
 
 #define NODE_CNT 18
-#define CONS 7 //node h
-#define PROD 15 // node q
+#define CONS 9 //node h
+#define PROD 16 // node q
 #define DEST PROD
 #define INVALID_PARENT_ID 0xbadbabe
 
@@ -185,10 +195,11 @@ void fill_two_hop_nbr_info();
 
 void OnData (Ptr<Face> pFace, Ptr<Data> data);
 
+/*
 void FindParentThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket);
 
 void AssignPrefixNameThruMsg(Ptr<Face> pFace, NdnPacket ndnPacket);
-
+*/
 void NotifyParentChange(unsigned int curId, unsigned int preId, unsigned int postId);
 
 void NotifyNameChange(unsigned int curId, Name preName, Name postName);
@@ -216,5 +227,7 @@ Ptr<NdnNode> SubscribeToAnchor(Ptr<Node> curNode);
 Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode);
 
 Ptr<NdnNode> GetNdnNodefromId(unsigned int ndnNodeId);
+
+void DeleteTree(Ptr<Node> curNode);
 
 #endif /* SCRATCH_MYNDN_H_ */
