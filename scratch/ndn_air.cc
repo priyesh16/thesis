@@ -390,18 +390,7 @@ void AllNodesCall(AllCallFuncttion function, direction_t direction)
 	}
 }
 
-unsigned int HashFunction(unsigned int curNodeId)
-{
-	return curNodeId % 4;
-}
 
-void IdentifyAnchors()
-{
-	anchorList.push_back(GetNdnNodefromId(0));
-	anchorList.push_back(GetNdnNodefromId(1));
-	anchorList.push_back(GetNdnNodefromId(2));
-	anchorList.push_back(GetNdnNodefromId(3));
-}
 
 void PublishToAnchor(Ptr<Node> curNode)
 {
@@ -513,6 +502,8 @@ void FillTwoHopTrie(Ptr<Node> curNode)
 
 }
 
+
+
 void FindNextHop(Ptr<Node> curNode) {
 	std::list<Ptr<NdnNode> > oneHopList;
 	std::list<Ptr<NdnNode> > oneHopList1;
@@ -539,7 +530,7 @@ void FindNextHop(Ptr<Node> curNode) {
 	std::vector<std::string>::const_iterator namesIter;
 	std::vector<Ptr<ndn::Name> > tmpPrefix;
 	super::iterator item;
-	Ptr<NdnNode> dstNdnNode = SubscribeToAnchor(nodeContainer.Get(DEST));
+	Ptr<NdnNode> dstNdnNode = SubscribeToAnchor(nodeContainer.Get(prod));
 	std::string destPrefix = dstNdnNode->prefixName.toUri();
 	Ptr<ndn::Name> destPrefixName = &(dstNdnNode->prefixName);
 	Ptr<Node> nextHop;
@@ -669,10 +660,26 @@ void DeleteTree(Ptr<Node> curNode)
 
 }
 
+unsigned int HashFunction(unsigned int curNodeId)
+{
+	return curNodeId % anchorsCnt;
+}
+
+void IdentifyAnchors()
+{
+	unsigned i;
+	cout << "anchorsCnt " << anchorsCnt << "\n";
+	for (i = 0; i < anchorsCnt; i++)
+		cout  << "i" << i << "\n" ;
+		anchorList.push_back(GetNdnNodefromId(i));
+}
+
 
 int main (int argc, char *argv[])
 {
 	routetype_t routeMethod = AIR;
+	string statsfile = "scratch/outfile_air";
+
 	// Setting default parameters for PointToPoint links and channels
 	Config::SetDefault ("ns3::PointToPointNetDevice::DataRate", StringValue ("1Mbps"));
 	Config::SetDefault ("ns3::PointToPointChannel::Delay", StringValue ("10ms"));
@@ -683,6 +690,23 @@ int main (int argc, char *argv[])
 	cmd.Parse (argc, argv);
 	if (argv[1] && !strcmp(argv[1], "dij")) {
 		routeMethod = DIJKSTRA;
+		statsfile = "scratch/outfile_dij";
+	}
+	if (argv[1] && !strcmp(argv[1], "air")) {
+		routeMethod = AIR;
+		statsfile = "scratch/outfile_air";
+	}
+	if (argv[2]) {
+		prod = atoi(argv[2]);
+		statsfile = statsfile + argv[2];
+		cout << "prod " << prod << "\n";
+		cout << "=================================" << "\n";
+	}
+	if (argv[3]) {
+		anchorsCnt = atoi(argv[3]);
+		statsfile = statsfile + argv[3];
+		cout << "anchors " << anchorsCnt << "\n";
+		cout << "=================================" << "\n";
 	}
 
 	// Read the topology from the topology text file
@@ -711,7 +735,7 @@ int main (int argc, char *argv[])
 
 	// Getting containers for the consumer/producer
 	NodeContainer producerNodes;
-	producerNodes.Add (nodeContainer.Get (PROD));
+	producerNodes.Add (nodeContainer.Get (prod));
 
 	//print_nbr_table();
 	NodeContainer consumerNodes;
@@ -741,7 +765,7 @@ int main (int argc, char *argv[])
 		AllNodesCall(FillOneHopNbrList, NDN_INCREASING_NODE_ID);
 		GetRootId();
 		AllNodesCall(FillChildrenList, NDN_ROOT_TO_CHILDREN);
-		AllNodesCall(PrintChildren, NDN_ROOT_TO_CHILDREN);
+		//AllNodesCall(PrintChildren, NDN_ROOT_TO_CHILDREN);
 		AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
 		AllNodesCall(FillTwoHopTrie, NDN_INCREASING_NODE_ID);
 		IdentifyAnchors();
@@ -750,13 +774,12 @@ int main (int argc, char *argv[])
 		AllNodesCall(AddFibEntries, NDN_INCREASING_NODE_ID);
 	}
 	Simulator::Stop (Seconds (1.0));
-	if (routeMethod == DIJKSTRA)
-		ndn::AppDelayTracer::InstallAll("scratch/outfile_dij");
-	else
-		ndn::AppDelayTracer::InstallAll("scratch/outfile_air");
+	ndn::AppDelayTracer::InstallAll(statsfile);
 
 	Simulator::Run ();
 	//AllNodesCall(DeleteTree, NDN_ROOT_TO_CHILDREN);
+
+	cout << "=================================" << "\n";
 
 	Simulator::Destroy ();
 	return 0;
@@ -1076,8 +1099,8 @@ void InstallHelloApp()
 
 	//txApp.Start (Seconds (1.0));
 	ndn::AppHelper rxHelper ("ns3::ndn::HelloApp");
-	//txApp.Install (nodeContainer.Get (PROD));
-	//rxHelper.Install (nodeContainer.Get (PROD));
+	//txApp.Install (nodeContainer.Get (prod));
+	//rxHelper.Install (nodeContainer.Get (prod));
 	rxHelper.Install (nodeContainer);
 }
 
