@@ -63,7 +63,7 @@ std::vector<Ptr<ndn::Name> > prefix;
 
 void CreateNDNNodeIdTable() {
 	int i = 0;
-	for(i = 0; i < NODE_CNT; i++) {
+	for(i = 0; i <= NODE_CNT; i++) {
 			ndnNodeIdTable[i] = i;
 	}
 }
@@ -82,9 +82,7 @@ void CreateNodeContainer() {
 	ndnNodeContainer.resize(size);
 	ndn::Name initialPrefixName = Name("/initial");
 
-  cout << "8 \n";
-	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
-		cout << "9 \n";
+  for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
 		from = (*linkiter).GetFromNode();
 		fromName = (*linkiter).GetFromNodeName();
 		to = (*linkiter).GetToNode();
@@ -402,21 +400,13 @@ void AllNodesCall(AllCallFuncttion function, direction_t direction)
 
 void PublishToAnchor(Ptr<Node> curNode)
 {
-	cout << "a-1\n";
-
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
 	unsigned int curNodeId = curNdnNode->ndnNodeId;
 	unsigned int anchorId;
 	Ptr<NdnNode> anchorNdnNode;
-
-	cout << "a0\n";
-
 	anchorId = HashFunction(curNodeId);
-cout << "a1\n";
 	anchorNdnNode = GetNdnNodefromId(anchorId);
-cout << "a2\n";
 	anchorNdnNode->anchorChildrenList.push_back(curNdnNode);
-  cout << "a3\n";
 }
 
 unsigned int GetNdnIdfromNodeId(unsigned int nodeId)
@@ -578,7 +568,8 @@ void FindNextHop(Ptr<Node> curNode) {
 		oneHopNbrName = (*oneHopInfoListIter)->nodeName;
 		oneHopNbrPrefix = (*oneHopInfoListIter)->prefixName.toUri();
 		cout << "\t" <<"1HopNbr " << oneHopNbrName << "\n";
-		twoHopList = (*oneHopInfoListIter)->oneHopList;
+
+
 		// If one hop nbr is the dest then break
 		if(oneHopNbrPrefix == destPrefix) {
 			cout << "Next hop is " << oneHopNbrName << " (which is also the dest) \n";
@@ -587,6 +578,15 @@ void FindNextHop(Ptr<Node> curNode) {
 			curNdnNode->nextHopNode = oneHopNbr;
 			return;
 		}
+
+    // If one hop nbr's nexthop is source then continue
+		// This is done to prevent cycles
+		if ((*oneHopInfoListIter)->nextHopNode == curNode) {
+			cout << "\t\tOmitting coz nexthop is " << sourceName << "\n";
+			continue;
+		}
+
+		twoHopList = (*oneHopInfoListIter)->oneHopList;
 		for (twoHopListIter = twoHopList.begin(); twoHopListIter != twoHopList.end(); twoHopListIter++) {
 			twoHopNbrName = &(*twoHopListIter)->prefixName;
 			twoHopNbrPreStr = (*twoHopListIter)->prefixName.toUri();
@@ -596,7 +596,7 @@ void FindNextHop(Ptr<Node> curNode) {
 				//cout << "\t\tThe two hop Nbr " << twoHopNbrStr << " and the source are the same \n";
 				continue;
 			}
-			cout << "\t\t" << "2HopNbr " << twoHopNbrStr << " : " << twoHopNbrPreStr << "\n";
+			cout << "\t\t2HopNbr " << twoHopNbrStr << " : " << twoHopNbrPreStr << "\n";
 			tmpTrie.insert((*twoHopNbrName), Create < ndn::detail::RegisteredPrefixEntry > (twoHopNbrName));
 			curNdnNode->nbrTrie = &tmpTrie;
 		}
@@ -616,6 +616,12 @@ void FindNextHop(Ptr<Node> curNode) {
 			oneHopList1 = curNdnNode->oneHopList;
 			for(oneHopInfoListIter1 = oneHopList1.begin() ; oneHopInfoListIter1 != oneHopList1.end() ; oneHopInfoListIter1++ ) {
 				twoHopList1 = (*oneHopInfoListIter1)->oneHopList;
+				// If one hop nbr's nexthop is source then continue
+				// This is done to prevent cycles
+				if ((*oneHopInfoListIter1)->nextHopNode == curNode) {
+					continue;
+				}
+
 				for (twoHopListIter1 = twoHopList1.begin(); twoHopListIter1 != twoHopList1.end(); twoHopListIter1++) {
 					if ((*twoHopListIter1)->prefixName.compare(foundPrefStr) == 0) {
 							cout << "Next hop is " << (*oneHopInfoListIter1)->nodeName << endl;
@@ -685,7 +691,6 @@ void IdentifyAnchors()
 	unsigned i;
 	cout << "anchorsCnt " << anchorsCnt << "\n";
 	for (i = 0; i < anchorsCnt; i++)
-		cout  << "i" << i << "\n" ;
 		anchorList.push_back(GetNdnNodefromId(i));
 }
 
@@ -719,7 +724,7 @@ int main (int argc, char *argv[])
 	}
 
 	// Read the topology from the topology text file
-	topologyReader.SetFileName(inputfilename);
+	topologyReader.SetFileName(FILENAME);
 	topologyReader.Read();
 
 	// Get the nodes in nodeContainer
@@ -741,10 +746,10 @@ int main (int argc, char *argv[])
 
 	//print_nbr_table();
 	NodeContainer consumerNodes;
-	for (unsigned i = 0; i < NODE_CNT; i++)
+	for (unsigned i = 0; i < NODE_CNT; i++) {
 		consumerNodes.Add (nodeContainer.Get (i));
+	}
 
-		cout << "1 \n";
 	ndn::AppHelper consumerHelper ("ns3::ndn::ConsumerCbr");
 	consumerHelper.SetPrefix (interestPrefixstr);
 	consumerHelper.SetAttribute ("Frequency", StringValue ("1")); // 10 interests a second
@@ -755,7 +760,6 @@ int main (int argc, char *argv[])
 	producerHelper.SetAttribute ("PayloadSize", StringValue("1024"));
 	producerHelper.Install (producerNodes);
 
-	cout << "2 \n";
 	// Add /prefix origins to ndn::GlobalRouter
 	ndnGlobalRoutingHelper.AddOrigins (interestPrefixstr, producerNodes);
 
@@ -765,29 +769,19 @@ int main (int argc, char *argv[])
 	}
 	// Start AIR Routing
 	else {
-
-		cout << "3 \n";
 		CreateNDNNodeIdTable();
 		CreateNodeContainer();
-
-		cout << "4 \n";
 		AllNodesCall(FillOneHopNbrList, NDN_INCREASING_NODE_ID);
 		GetRootId();
-		cout << "1 \n";
 		AllNodesCall(FillChildrenList, NDN_ROOT_TO_CHILDREN);
 		//AllNodesCall(PrintChildren, NDN_ROOT_TO_CHILDREN);
 		AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
 		AllNodesCall(FillTwoHopTrie, NDN_INCREASING_NODE_ID);
 
-		cout << "2 \n";
 		IdentifyAnchors();
 		AllNodesCall(PublishToAnchor, NDN_ROOT_TO_CHILDREN);
-
-		cout << "3 \n";
 		AllNodesCall(FindNextHop, NDN_INCREASING_NODE_ID);
 		AllNodesCall(AddFibEntries, NDN_INCREASING_NODE_ID);
-
-		cout << "4 \n";
 	}
 	Simulator::Stop (Seconds (1.0));
 	ndn::AppDelayTracer::InstallAll(statsfile);

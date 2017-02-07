@@ -38,8 +38,14 @@ using namespace ndn;
 #define PROD 13 // node q
 #define ANCHORSCNT 4
 #define INVALID_PARENT_ID 0xbadbabe
+#define NODE_CNT 153
+//#define NODE_CNT 18
 
+#define FILENAME "scratch/ATT_topo.txt"
+//#define FILENAME "scratch/paper_topo.txt"
 
+unsigned anchorsCnt = ANCHORSCNT;
+unsigned prod = PROD;
 ndn::Name initialPrefixName = Name("/initial");
 ndn::Name invalidPrefixName = Name("/invalid");
 ndn::Name rootPrefixName = Name("/0");
@@ -60,24 +66,6 @@ typedef ndn::ndnSIM::trie_with_policy< Name,
                                     ndnSIM::counting_policy_traits > super;
 
 std::string interestPrefixstr = "/prefix";
-/*
-class NodeInfo {
-public:
-	Ptr<Node> node;
-	std::list<Ptr<Node> > oneHopList; //List of one hop nbrs.
-	std::list<NodeInfo *> oneHopNodeInfoList; // List of Nodeinfos of one hop nbrs.
-	std::string nodeName;    // like hostname
-	std::string prefixStr;
-	int nodeId;
-	Ptr<ndn::Name> prefixName;
-	twoNbrTrie *nbrTrie;
-	Ptr<Node> nextHopNode; //Next node to route to (This is to be deleted and directly added to fib)
-	bool isRoot; // Member to check if currently is root.
-	// like ip address
-// (*oneHopInfoList).oneHopList is the list of twoHopNbrs going through that oneHopNbr
-// note the twoHopNbr could be the source node also..so always check for that
-} ;
-*/
 
 typedef enum packetType_s {
 	GET_PARENT,
@@ -114,17 +102,7 @@ public:
 
 std::vector<NdnNode> ndnNodeContainer;
 std::list<Ptr<NdnNode> > anchorList;
-//Ptr<NdnNode> dstNdnNode;
 
-/*class NdnPacket : public SimpleRefCount<NdnPacket>
-{
-public:
-	packetType_t packetType;
-	int senderId;
-	int receiverId;
-	int parentId; //Node identifier which the sender thinks is the root
-};
-*/
 typedef enum err_s
 {
 	NDN_OK,
@@ -143,18 +121,11 @@ typedef enum routetype_s
 	AIR,
 }routetype_t;
 
-unsigned anchorsCnt = ANCHORSCNT;
-unsigned prod = PROD;
-#define NODE_CNT 153
-string inputfilename="scratch/ATT_topo.txt";
-//#define NODE_CNT 18
-
-//string inputfilename="scratch/paper_topo.txt";
 
 
-int ndnNodeIdTable[NODE_CNT];
-/*
-int ndnNodeIdTable[] = {
+//int ndnNodeIdTable[NODE_CNT];
+
+int ndnNodeIdTable[NODE_CNT] = {
 		7,		//a 0
 		3, 		//b 1
 		6,		//c 2
@@ -174,31 +145,6 @@ int ndnNodeIdTable[] = {
 		11,		//r 16
 		17 		//s 17
 };
-*/
-/*
-
-std::string prefixNamesArr[] = {
-		"/0/2/1",		//a
-		"/0/1/1/1", 	//b
-		"/0/2",			//c
-		"/0/3/1",		//d
-		"/0/2/1/1",		//e
-		"/0/1/1",		//f
-		"/0/1/1/1/1",	//g
-		"/0/1/1/1/2",	//h
-		"/0/1",			//i
-		"/0",			//j
-		"/0/3",			//k
-		"/0/3/1/1",		//m
-		"/0/2/1/1/2",	//n
-		"/0/2/1/1/1",	//o
-		"/0/3/1/2",		//p
-		"/0/3/1/1/1",	//q
-		"/0/2/1/1/2/1",	//r
-		"/0/3/1/2/1" // s
-};
-*/
-
 
 void
 add_path(unsigned firstNode,unsigned SecndNode, int metric, const string str);
