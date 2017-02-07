@@ -394,14 +394,21 @@ void AllNodesCall(AllCallFuncttion function, direction_t direction)
 
 void PublishToAnchor(Ptr<Node> curNode)
 {
+	cout << "a-1\n";
+
 	Ptr<NdnNode> curNdnNode = GetNdnNodefromNode(curNode);
 	unsigned int curNodeId = curNdnNode->ndnNodeId;
 	unsigned int anchorId;
 	Ptr<NdnNode> anchorNdnNode;
 
+	cout << "a0\n";
+
 	anchorId = HashFunction(curNodeId);
+cout << "a1\n";
 	anchorNdnNode = GetNdnNodefromId(anchorId);
+cout << "a2\n";
 	anchorNdnNode->anchorChildrenList.push_back(curNdnNode);
+  cout << "a3\n";
 }
 
 unsigned int GetNdnIdfromNodeId(unsigned int nodeId)
@@ -700,12 +707,6 @@ int main (int argc, char *argv[])
 		prod = atoi(argv[2]);
 		statsfile = statsfile + argv[2];
 		cout << "prod " << prod << "\n";
-		cout << "=================================" << "\n";
-	}
-	if (argv[3]) {
-		anchorsCnt = atoi(argv[3]);
-		statsfile = statsfile + argv[3];
-		cout << "anchors " << anchorsCnt << "\n";
 		cout << "=================================" << "\n";
 	}
 
