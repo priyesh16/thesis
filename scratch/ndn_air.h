@@ -33,6 +33,13 @@
 using namespace std;
 using namespace ns3;
 using namespace ndn;
+
+#define CONS 3 //node h
+#define PROD 13 // node q
+#define ANCHORSCNT 4
+#define INVALID_PARENT_ID 0xbadbabe
+
+
 ndn::Name initialPrefixName = Name("/initial");
 ndn::Name invalidPrefixName = Name("/invalid");
 ndn::Name rootPrefixName = Name("/0");
@@ -136,7 +143,17 @@ typedef enum routetype_s
 	AIR,
 }routetype_t;
 
+unsigned anchorsCnt = ANCHORSCNT;
+unsigned prod = PROD;
+#define NODE_CNT 153
+string inputfilename="scratch/ATT_topo.txt";
+//#define NODE_CNT 18
 
+//string inputfilename="scratch/paper_topo.txt";
+
+
+int ndnNodeIdTable[NODE_CNT];
+/*
 int ndnNodeIdTable[] = {
 		7,		//a 0
 		3, 		//b 1
@@ -157,7 +174,7 @@ int ndnNodeIdTable[] = {
 		11,		//r 16
 		17 		//s 17
 };
-
+*/
 /*
 
 std::string prefixNamesArr[] = {
@@ -182,14 +199,6 @@ std::string prefixNamesArr[] = {
 };
 */
 
-#define NODE_CNT 18
-#define CONS 3 //node h
-#define PROD 13 // node q
-#define ANCHORSCNT 4
-#define INVALID_PARENT_ID 0xbadbabe
-
-unsigned anchorsCnt = ANCHORSCNT;
-unsigned prod = PROD;
 
 void
 add_path(unsigned firstNode,unsigned SecndNode, int metric, const string str);
@@ -232,5 +241,7 @@ Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode);
 Ptr<NdnNode> GetNdnNodefromId(unsigned int ndnNodeId);
 
 void DeleteTree(Ptr<Node> curNode);
+
+void CreateNDNNodeIdTable();
 
 #endif /* SCRATCH_MYNDN_H_ */

@@ -61,6 +61,13 @@ ndn::ndnSIM::trie_with_policy< ndn::Name,
 
 std::vector<Ptr<ndn::Name> > prefix;
 
+void CreateNDNNodeIdTable() {
+	int i = 0;
+	for(i = 0; i < NODE_CNT; i++) {
+			ndnNodeIdTable[i] = i;
+	}
+}
+
 void CreateNodeContainer() {
 	std::vector<std::string>::const_iterator namesIter;
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
@@ -75,8 +82,9 @@ void CreateNodeContainer() {
 	ndnNodeContainer.resize(size);
 	ndn::Name initialPrefixName = Name("/initial");
 
+  cout << "8 \n";
 	for(linkiter = links.begin() ; linkiter != links.end() ; linkiter++ ) {
-
+		cout << "9 \n";
 		from = (*linkiter).GetFromNode();
 		fromName = (*linkiter).GetFromNodeName();
 		to = (*linkiter).GetToNode();
@@ -690,7 +698,7 @@ int main (int argc, char *argv[])
 	// Setting default parameters for PointToPoint links and channels
 	Config::SetDefault ("ns3::PointToPointNetDevice::DataRate", StringValue ("1Mbps"));
 	Config::SetDefault ("ns3::PointToPointChannel::Delay", StringValue ("10ms"));
-    Config::SetDefault ("ns3::DropTailQueue::MaxPackets", StringValue ("10"));
+	Config::SetDefault ("ns3::DropTailQueue::MaxPackets", StringValue ("10"));
 
 	// Read optional command-line parameters (e.g., enable visualizer with ./waf --run=<> --visualize
 	CommandLine cmd;
@@ -711,18 +719,11 @@ int main (int argc, char *argv[])
 	}
 
 	// Read the topology from the topology text file
-	topologyReader.SetFileName("scratch/paper_topo.txt");
+	topologyReader.SetFileName(inputfilename);
 	topologyReader.Read();
 
 	// Get the nodes in nodeContainer
 	NodeContainer nodeContainer = NodeContainer::GetGlobal();
-
-
-
-	//fill_names();
-	//fill_nbr_table();
-	//add_node_identifiers();
-
 
 	// Install NDN stack on all nodes
 	ndn::StackHelper ndnHelper;
@@ -743,6 +744,7 @@ int main (int argc, char *argv[])
 	for (unsigned i = 0; i < NODE_CNT; i++)
 		consumerNodes.Add (nodeContainer.Get (i));
 
+		cout << "1 \n";
 	ndn::AppHelper consumerHelper ("ns3::ndn::ConsumerCbr");
 	consumerHelper.SetPrefix (interestPrefixstr);
 	consumerHelper.SetAttribute ("Frequency", StringValue ("1")); // 10 interests a second
@@ -753,6 +755,7 @@ int main (int argc, char *argv[])
 	producerHelper.SetAttribute ("PayloadSize", StringValue("1024"));
 	producerHelper.Install (producerNodes);
 
+	cout << "2 \n";
 	// Add /prefix origins to ndn::GlobalRouter
 	ndnGlobalRoutingHelper.AddOrigins (interestPrefixstr, producerNodes);
 
@@ -762,17 +765,29 @@ int main (int argc, char *argv[])
 	}
 	// Start AIR Routing
 	else {
+
+		cout << "3 \n";
+		CreateNDNNodeIdTable();
 		CreateNodeContainer();
+
+		cout << "4 \n";
 		AllNodesCall(FillOneHopNbrList, NDN_INCREASING_NODE_ID);
 		GetRootId();
+		cout << "1 \n";
 		AllNodesCall(FillChildrenList, NDN_ROOT_TO_CHILDREN);
 		//AllNodesCall(PrintChildren, NDN_ROOT_TO_CHILDREN);
 		AllNodesCall(AssignPrefixName, NDN_ROOT_TO_CHILDREN);
 		AllNodesCall(FillTwoHopTrie, NDN_INCREASING_NODE_ID);
+
+		cout << "2 \n";
 		IdentifyAnchors();
 		AllNodesCall(PublishToAnchor, NDN_ROOT_TO_CHILDREN);
+
+		cout << "3 \n";
 		AllNodesCall(FindNextHop, NDN_INCREASING_NODE_ID);
 		AllNodesCall(AddFibEntries, NDN_INCREASING_NODE_ID);
+
+		cout << "4 \n";
 	}
 	Simulator::Stop (Seconds (1.0));
 	ndn::AppDelayTracer::InstallAll(statsfile);
