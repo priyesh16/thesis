@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 def delayplot(files, outfile):
     color = 'blue'
     maxlist = [0, 0]
-    NODE_CNT = 18
+    NODE_CNT = 153
 
     bar_width = 0.35
     opacity = 0.4
@@ -25,6 +25,8 @@ def delayplot(files, outfile):
     nodelist = []
     dijdelay = []
     airdelay = []
+    dijhops = []
+    airhops = []
     filename = mod_dij
     with open(filename, "r") as f:
         for line in f:
@@ -64,13 +66,18 @@ def delayplot(files, outfile):
         nodelist.append(comb[1])
         dijdelay.append(comb[2])
         airdelay.append(comb[6])
+        dijhops.append(comb[3])
+        airhops.append(comb[7])
         print comb
+
+    print dijhops
+    print airhops
     # Example data
+    nodeids = [int(nodeid.strip('Node')) for nodeid in nodelist]
+
+    print nodeids
     y_pos = np.arange(len(nodelist))
     n_groups = NODE_CNT
-
-    means_men = dijdelay
-    means_women = airdelay
 
     fig, ax = plt.subplots()
 
@@ -80,27 +87,33 @@ def delayplot(files, outfile):
     opacity = 0.4
     error_config = {'ecolor': '0.3'}
 
-    rects1 = plt.bar(index, dijdelay, bar_width,
+    rects1 = plt.bar(index, dijhops, bar_width,
              alpha=opacity, color='b', yerr=0, error_kw=error_config, label='Dijkstra\'s')
 
-    rects2 = plt.bar(index + bar_width, airdelay, bar_width,
+    rects2 = plt.bar(index + bar_width, airhops, bar_width,
              alpha=opacity, color='r', yerr=0, error_kw=error_config, label='Air')
 
     plt.xlabel('Nodes')
-    plt.ylabel('Latencies')
-    plt.title('Latencies of each node with respect to destination')
-    ax.set_xticks(index + bar_width)
-    ax.set_xticklabels(nodelist)
+    plt.ylabel('Hop Count')
+    plt.title('Hop count of each node to the destination')
+    '''hide the x axix labels'''
+    frame1 = plt.gca()
+    frame1.axes.get_xaxis().set_ticks([])
+    #ax.set_xticks(nodeids)
+    #ax.set_xticklabels(nodeids)
+    #rects = ax.patches
+    #for rect, label in zip(rects, nodeids):
+    #    height = rect.get_height()
+    #    ax.text(rect.get_x() + rect.get_width()/2, height + 1, label, ha='center', va='bottom')
 
     plt.legend()
 
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.show()
 
 if __name__ == "__main__":
-    mod_air = "mod_air" + sys.argv[1] + sys.argv[2]
-    mod_dij = "mod_dij" + sys.argv[1] + sys.argv[2]
-    print mod_air
+    mod_air = "mod_air"
+    mod_dij = "mod_dij"
     outfile = "test"
     files = [mod_air, mod_dij]
     delayplot(files, outfile)
