@@ -112,8 +112,8 @@ def delayplot(files, outfile):
     plt.show()
 
 if __name__ == "__main__":
-    mod_air = "mod_air"
-    mod_dij = "mod_dij"
+    mod_air = "scratch/mod_air"
+    mod_dij = "scratch/mod_dij"
     outfile = "test"
     files = [mod_air, mod_dij]
     delayplot(files, outfile)

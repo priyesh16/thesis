@@ -256,7 +256,7 @@ void AssignPrefixName(Ptr<Node> curNode)
 		sstream << childId;
 		strChildId = sstream.str();
 		childNdnNode->prefixName = tmpPrefixName.append(strChildId);
-		NotifyNameChange(childNdnNode->ndnNodeId, preName, childNdnNode->prefixName);
+		//NotifyNameChange(childNdnNode->ndnNodeId, preName, childNdnNode->prefixName);
 	}
 
 	return;
@@ -480,13 +480,13 @@ void FillTwoHopTrie(Ptr<Node> curNode)
 
 	oneHopList = curNdnNode->oneHopList;
 
-	cout << "I am " << curNdnNode->nodeName << " : " << curPrefix.toUri() << "\n";
+	//cout << "I am " << curNdnNode->nodeName << " : " << curPrefix.toUri() << "\n";
 
 	for(oneHopListIter = oneHopList.begin() ; oneHopListIter != oneHopList.end() ; oneHopListIter++ ) {
 		oneHopNbr = (*oneHopListIter);
 		oneHopNbrName = (*oneHopListIter)->nodeName;
 		oneHopNbrPrefix = (*oneHopListIter)->prefixName;
-		cout << "\t" <<"1HopNbr " << oneHopNbrName << " : " << oneHopNbrPrefix.toUri() << "\n";
+		//cout << "\t" <<"1HopNbr " << oneHopNbrName << " : " << oneHopNbrPrefix.toUri() << "\n";
 		twoHopList = (*oneHopListIter)->oneHopList;
 
 		for (twoHopListIter = twoHopList.begin(); twoHopListIter != twoHopList.end(); twoHopListIter++) {
@@ -498,7 +498,7 @@ void FillTwoHopTrie(Ptr<Node> curNode)
 				continue;
 			}
 
-			cout << "\t\t" << "2HopNbr " << twoHopNbrName << " : " << twoHopNbrPrefix.toUri() << "\n";
+			//cout << "\t\t" << "2HopNbr " << twoHopNbrName << " : " << twoHopNbrPrefix.toUri() << "\n";
 			(*(curNdnNode->nbrTrie)).insert((twoHopNbrPrefix), Create < ndn::detail::RegisteredPrefixEntry > (&twoHopNbrPrefix));
 			//*(curNdnNode->nbrTrie) = tmpTrie;
 			//std::cout << tmpTrie.getTrie ();
@@ -541,18 +541,18 @@ void FindNextHop(Ptr<Node> curNode) {
 	Ptr<Node> nextHop;
 	unsigned int found = 0;
 	Ptr<ndn::Name> srcPrefixName;
-	cout << "\n-------------------------------------------------\n";
+	//cout << "\n-------------------------------------------------\n";
 
 	//curNdnNode = &ndnNodeContainer[i];
 	sourceName = curNdnNode->nodeName;
 	srcPrefixName = &(curNdnNode->prefixName);
 	prefixStr = curNdnNode->prefixName.toUri();
-	cout << "Sourcename " << sourceName << "\n";
+	//cout << "Sourcename " << sourceName << "\n";
 
 	oneHopList = curNdnNode->oneHopList;
 	// If source is the dest then break
 	if(prefixStr == destPrefix) {
-		cout << "Current node " << sourceName << " is the dest \n";
+		//cout << "Current node " << sourceName << " is the dest \n";
 		found = 1;
 		nextHop = 0;
 		curNdnNode->nextHopNode = curNdnNode->pNode;
@@ -567,12 +567,12 @@ void FindNextHop(Ptr<Node> curNode) {
 		oneHopNbr = (*oneHopInfoListIter)->pNode;
 		oneHopNbrName = (*oneHopInfoListIter)->nodeName;
 		oneHopNbrPrefix = (*oneHopInfoListIter)->prefixName.toUri();
-		cout << "\t" <<"1HopNbr " << oneHopNbrName << "\n";
+		//cout << "\t" <<"1HopNbr " << oneHopNbrName << "\n";
 
 
 		// If one hop nbr is the dest then break
 		if(oneHopNbrPrefix == destPrefix) {
-			cout << "Next hop is " << oneHopNbrName << " (which is also the dest) \n";
+			//cout << "Next hop is " << oneHopNbrName << " (which is also the dest) \n";
 			found = 1;
 			nextHop = oneHopNbr;
 			curNdnNode->nextHopNode = oneHopNbr;
@@ -582,7 +582,7 @@ void FindNextHop(Ptr<Node> curNode) {
     // If one hop nbr's nexthop is source then continue
 		// This is done to prevent cycles
 		if ((*oneHopInfoListIter)->nextHopNode == curNode) {
-			cout << "\t\tOmitting coz nexthop is " << sourceName << "\n";
+			//cout << "\t\tOmitting coz nexthop is " << sourceName << "\n";
 			continue;
 		}
 
@@ -596,7 +596,7 @@ void FindNextHop(Ptr<Node> curNode) {
 				//cout << "\t\tThe two hop Nbr " << twoHopNbrStr << " and the source are the same \n";
 				continue;
 			}
-			cout << "\t\t2HopNbr " << twoHopNbrStr << " : " << twoHopNbrPreStr << "\n";
+			//cout << "\t\t2HopNbr " << twoHopNbrStr << " : " << twoHopNbrPreStr << "\n";
 			tmpTrie.insert((*twoHopNbrName), Create < ndn::detail::RegisteredPrefixEntry > (twoHopNbrName));
 			curNdnNode->nbrTrie = &tmpTrie;
 		}
@@ -612,7 +612,7 @@ void FindNextHop(Ptr<Node> curNode) {
 		// if item is still 0 then ideally assert
 		//if (item != 0) {
 			foundPrefStr = *((item->payload ())->GetPrefix());
-			cout << "Longest Prefix found for destination " << destPrefix << " is " << foundPrefStr << endl;
+			//cout << "Longest Prefix found for destination " << destPrefix << " is " << foundPrefStr << endl;
 			oneHopList1 = curNdnNode->oneHopList;
 			for(oneHopInfoListIter1 = oneHopList1.begin() ; oneHopInfoListIter1 != oneHopList1.end() ; oneHopInfoListIter1++ ) {
 				twoHopList1 = (*oneHopInfoListIter1)->oneHopList;
@@ -624,7 +624,7 @@ void FindNextHop(Ptr<Node> curNode) {
 
 				for (twoHopListIter1 = twoHopList1.begin(); twoHopListIter1 != twoHopList1.end(); twoHopListIter1++) {
 					if ((*twoHopListIter1)->prefixName.compare(foundPrefStr) == 0) {
-							cout << "Next hop is " << (*oneHopInfoListIter1)->nodeName << endl;
+							//cout << "Next hop is " << (*oneHopInfoListIter1)->nodeName << endl;
 							curNdnNode->nextHopNode = (*oneHopInfoListIter1)->pNode;
 							found = 1;
 							break;
@@ -635,7 +635,7 @@ void FindNextHop(Ptr<Node> curNode) {
 			}
 		//}
 	}
-	cout << "\n-------------------------------------------------\n\n\n";
+	//cout << "\n-------------------------------------------------\n\n\n";
 }
 
 void AddPath(unsigned firstNode,unsigned SecndNode, int metric, string str){
@@ -689,7 +689,6 @@ unsigned int HashFunction(unsigned int curNodeId)
 void IdentifyAnchors()
 {
 	unsigned i;
-	cout << "anchorsCnt " << anchorsCnt << "\n";
 	for (i = 0; i < anchorsCnt; i++)
 		anchorList.push_back(GetNdnNodefromId(i));
 }
@@ -698,7 +697,10 @@ void IdentifyAnchors()
 int main (int argc, char *argv[])
 {
 	routetype_t routeMethod = AIR;
-	string statsfile = "scratch/outfile_air";
+	string statsfile = "scratch/statfiles/air";
+	stringstream ss;
+	ss << prod;
+	string prodstr = ss.str();
 
 	// Setting default parameters for PointToPoint links and channels
 	Config::SetDefault ("ns3::PointToPointNetDevice::DataRate", StringValue ("1Mbps"));
@@ -708,20 +710,23 @@ int main (int argc, char *argv[])
 	// Read optional command-line parameters (e.g., enable visualizer with ./waf --run=<> --visualize
 	CommandLine cmd;
 	cmd.Parse (argc, argv);
+
 	if (argv[1] && !strcmp(argv[1], "dij")) {
 		routeMethod = DIJKSTRA;
-		statsfile = "scratch/outfile_dij";
+		statsfile = "scratch/subdir/statfiles/dij";
 	}
 	if (argv[1] && !strcmp(argv[1], "air")) {
 		routeMethod = AIR;
-		statsfile = "scratch/outfile_air";
+		statsfile = "scratch/subdir/statfiles/air";
 	}
 	if (argv[2]) {
 		prod = atoi(argv[2]);
-		statsfile = statsfile + argv[2];
-		cout << "prod " << prod << "\n";
-		cout << "=================================" << "\n";
+		prodstr = argv[2];
+		//cout << "producer is node " << prod << "\n";
 	}
+	//string prodstr = string(intStr);
+	statsfile = statsfile + prodstr;
+	//cout << "Stat file created at " << statsfile << "\n";
 
 	// Read the topology from the topology text file
 	topologyReader.SetFileName(FILENAME);
@@ -789,7 +794,7 @@ int main (int argc, char *argv[])
 	Simulator::Run ();
 	//AllNodesCall(DeleteTree, NDN_ROOT_TO_CHILDREN);
 
-	cout << "=================================" << "\n";
+	//cout << "=================================" << "\n";
 
 	Simulator::Destroy ();
 	return 0;

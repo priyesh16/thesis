@@ -8,6 +8,7 @@
 #ifndef SCRATCH_MYNDN_H_
 #define SCRATCH_MYNDN_H_
 
+#include <stdlib.h>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
