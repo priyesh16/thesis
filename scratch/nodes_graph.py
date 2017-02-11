@@ -35,7 +35,7 @@ def readfiles():
     airfile = files[1]
     #dijdelay = []
     #airdelay = []
-    
+
     with open(dijfile, "r") as f:
         next(f);
         for line in f:
@@ -107,7 +107,7 @@ def computemean():
         statfile.write(statres)
 
 
-def creategraph():
+def creategraph(dest):
     y_pos = np.arange(len(nodelist))
     n_groups = NODE_CNT
 
@@ -141,8 +141,11 @@ def creategraph():
     plt.legend()
 
     #plt.tight_layout()
+    pngfile = "scratch/hops" + str(dest)
+    plt.savefig(pngfile)
     plt.show()
 
+    
 def runwaf(dest):
     dijwaf = './waf --run="ndn_air dij ' + dest +' "'
     airwaf = './waf --run="ndn_air air ' + dest +' "'
@@ -160,11 +163,16 @@ def getfiles(dest):
 
 if __name__ == "__main__":
     dest = sys.argv[1]
+    isSorted = False
+    if (len(sys.argv) == 2):
+        isSorted = True;
+
     print "Computing Destination Node", dest
     runwaf(dest);
     getfiles(dest)
     comblist = readfiles()
-    comblist = sortlist(comblist)
+    if isSorted:
+        comblist = sortlist(comblist)
     getxy(comblist)
     computemean()
-    #creategraph()
+    creategraph(dest)
