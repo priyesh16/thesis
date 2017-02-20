@@ -17,6 +17,8 @@ airhops = []
 files = []
 #comblist = []
 
+pngfile = "scratch/hops"
+
 def readfiles():
     color = 'blue'
     maxlist = [0, 0]
@@ -107,7 +109,11 @@ def computemean():
         statfile.write(statres)
 
 
-def creategraph(dest):
+def creategraph(dest, isSorted):
+    title = 'Hop counts to Node'
+    title += str(dest)
+    if not isSorted:
+        title += ' (Sorted by Hop Count)'
     y_pos = np.arange(len(nodelist))
     n_groups = NODE_CNT
 
@@ -126,11 +132,13 @@ def creategraph(dest):
              alpha=opacity, color='r', yerr=0, error_kw=error_config, label='Air')
 
     plt.xlabel('Nodes')
-    plt.ylabel('Hop Count')
-    plt.title('Hop count of each node to the destination')
+    plt.ylabel('Hop Counts')
+
+    plt.title(title)
     '''hide the x axix labels'''
-    #frame1 = plt.gca()
-    #frame1.axes.get_xaxis().set_ticks([])
+    if not isSorted:
+        frame1 = plt.gca()
+        frame1.axes.get_xaxis().set_ticks([])
     #ax.set_xticks(nodeids)
     #ax.set_xticklabels(nodeids)
     #rects = ax.patches
@@ -141,11 +149,10 @@ def creategraph(dest):
     plt.legend()
 
     #plt.tight_layout()
-    pngfile = "scratch/hops" + str(dest)
     plt.savefig(pngfile)
     plt.show()
 
-    
+
 def runwaf(dest):
     dijwaf = './waf --run="ndn_air dij ' + dest +' "'
     airwaf = './waf --run="ndn_air air ' + dest +' "'
@@ -168,11 +175,14 @@ if __name__ == "__main__":
         isSorted = True;
 
     print "Computing Destination Node", dest
+    pngfile = pngfile + str(dest)
     runwaf(dest);
     getfiles(dest)
     comblist = readfiles()
+
     if isSorted:
         comblist = sortlist(comblist)
+        pngfile = pngfile + "_sorted"
     getxy(comblist)
     computemean()
-    creategraph(dest)
+    creategraph(dest, isSorted)

@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 from operator import itemgetter
 
 nodelist = []
-NODE_CNT = 153
 dijhops = []
 airhops = []
 files = []
@@ -28,7 +27,7 @@ dijmean = []
 dijvariance = []
 statfile = "scratch/mean_variance.txt"
 
-def main(total):
+def main():
     #p = subprocess.Popen("rm scratch/mean_variance.txt", shell=True)
     #p.wait();
 
@@ -62,11 +61,10 @@ def main(total):
         dijvariance.append(row[4])
 
 def creategraph(total):
-    y_pos = np.arange(len(nodelist))
+    index = np.arange(len(airmean))
 
     fig, ax = plt.subplots()
 
-    index = np.arange(total)
     bar_width = 0.35
 
     opacity = 0.4
@@ -84,13 +82,16 @@ def creategraph(total):
     axes = plt.gca()
     axes.set_ylim([0,10])
 
+    print len(airmean)
+    print len(index)
+
     plt.errorbar(index, airmean, xerr=0, yerr=airsd)
     plt.errorbar(index, dijmean, xerr=0, yerr=dijsd)
     #plt.errorbar(index, dijmean, xerr=0, yerr=dijvariance)
 
     plt.xlabel('Nodes')
-    plt.ylabel('Hop Count')
-    plt.title('Mean and Standard Deviation of hop count from every node to each other')
+    plt.ylabel('Hop Counts')
+    plt.title('Mean and Standard Deviation wrt Hop Counts')
     '''hide the x axix labels'''
     #frame1 = plt.gca()
     #frame1.axes.get_xaxis().set_ticks([])
@@ -104,10 +105,11 @@ def creategraph(total):
     plt.legend()
 
     #plt.tight_layout()
-    #plt.show()
     #fig = plt.figure()
     plt.savefig("scratch/mean_variance.png", bbox_inches='tight')
-    plt.close(fig)
+    plt.show()
+
+    #plt.close(fig)
 
 def runsingle(dest):
     command = "scratch/nodes_graph.py " + str(dest)
@@ -122,5 +124,5 @@ def getfiles(dest):
 
 if __name__ == "__main__":
     total = int(sys.argv[1])
-    main(total);
+    main();
     creategraph(total)
