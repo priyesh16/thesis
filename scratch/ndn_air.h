@@ -173,7 +173,8 @@ void FindParent(Ptr<Node> curNode);
 
 typedef void (*AllCallFuncttion)(Ptr<Node> curNode);
 
-void AllNodesCall(AllCallFuncttion function);
+void AllNodesCall(AllCallFuncttion function, direction_t direction);
+
 
 unsigned int HashFunction(unsigned int curNodeId);
 
@@ -187,8 +188,23 @@ Ptr<NdnNode> GetNdnNodefromNode(Ptr<Node> curNode);
 
 Ptr<NdnNode> GetNdnNodefromId(unsigned int ndnNodeId);
 
+void FillTwoHopTrie(Ptr<Node> curNode);
+
+void AddFibEntries (Ptr<Node> curNode) ;
+
 void DeleteTree(Ptr<Node> curNode);
 
 void CreateNDNNodeIdTable();
+
+void CreateNodeContainer();
+
+void FillOneHopNbrList(Ptr<Node> curNode);
+
+void GetRootId();
+
+void AssignPrefixName(Ptr<Node> curNode);
+
+void FindNextHop(Ptr<Node> curNode);
+
 
 #endif /* SCRATCH_MYNDN_H_ */
